@@ -1,0 +1,4 @@
+<Solution>
+  <Project Path="NeAvito.Tests/NeAvito.Tests.csproj" />
+  <Project Path="NeAvito/NeAvito.csproj" />
+</Solution>
