@@ -31,6 +31,7 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options) : Ident
         {
             entity.Property(x => x.Title).HasMaxLength(200).IsRequired();
             entity.Property(x => x.Description).HasMaxLength(10000).IsRequired();
+            entity.Property(x => x.TransitionNote).HasMaxLength(500);
             entity.Property(x => x.Status).HasConversion<string>().HasMaxLength(20);
             entity.Property(x => x.Condition).HasConversion<string>().HasMaxLength(20);
             entity.Property(x => x.Version).IsConcurrencyToken();

@@ -3,14 +3,14 @@
 <head>
   <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Каталог — NeAvito</title>
-  <link rel="stylesheet" href="/app.css"><script src="/password-toggle.js" defer></script><script src="/app.js" defer></script><script src="/account-security.js" defer></script><script src="/listings.js" defer></script><script src="/catalog.js" defer></script>
+  <link rel="stylesheet" href="/app.css?v=p2-1"><script src="/password-toggle.js?v=p2-1" defer></script><script src="/app.js?v=p2-1" defer></script><script src="/account-security.js?v=p2-1" defer></script><script src="/listings.js?v=p2-1" defer></script><script src="/catalog.js?v=p2-1" defer></script>
 </head>
 <body>
   <header class="topbar"><a class="brand" href="#catalog"><span class="brand-mark">N</span>NeAvito<span class="brand-note">вещи с продолжением</span></a><div class="store-nav"><a href="#catalog">Каталог</a><a id="guest-login" href="#login">Войти</a><span id="cart-count" class="small muted" hidden></span></div><div id="userbar" hidden><a href="#profile">Кабинет</a><span id="user-name"></span><button id="logout" class="quiet">Выйти</button></div></header>
   <div id="notice" role="status" aria-live="polite" hidden></div>
   <main id="storefront" class="storefront" tabindex="-1" hidden></main>
   <main id="auth-screen" class="auth-layout" hidden>
-    <section class="welcome"><span class="eyebrow">ВАШЕ МЕСТО НА NEAVITO</span><h1>Покупайте.<br>Продавайте.<br>Будьте на связи.</h1><p>Заказы, ваши товары и данные профиля — в одном личном кабинете.</p><div class="welcome-note"><span>01 /</span> Один аккаунт для покупок и продаж</div></section>
+    <section class="welcome"><span class="eyebrow">ВАШЕ МЕСТО НА NEAVITO</span><h1>Покупайте.<br>Продавайте.<br>Будьте на связи.</h1><p>Ваши объявления и данные профиля — в одном личном кабинете.</p><div class="welcome-note"><span>01 /</span> Один аккаунт для покупок и продаж</div></section>
     <section class="auth-card">
       <div class="switch" aria-label="Вход или регистрация">
         <button class="selected" data-auth-mode="login" type="button">Вход</button>
@@ -33,7 +33,7 @@
       </div>
     </section>
   </main>
-  <div id="cabinet" class="cabinet" hidden><aside><div class="sidebar-title">Личный кабинет</div><nav aria-label="Разделы кабинета"><a href="#profile">Мой профиль</a><a href="#listings">Мои объявления</a><div class="nav-label">ПОКУПАТЕЛЮ</div><a href="#purchases">Мои покупки</a><div class="nav-label">ПРОДАВЦУ</div><a href="#products">Мои товары</a><a href="#sales">Полученные заказы</a></nav><div class="sidebar-footer">Один аккаунт.<br>Две возможности.</div></aside><main id="content" tabindex="-1"></main></div>
+  <div id="cabinet" class="cabinet" hidden><aside><div class="sidebar-title">Личный кабинет</div><nav aria-label="Разделы кабинета"><a href="#profile">Мой профиль</a><a href="#listings">Мои объявления</a><div class="nav-label">АРХИВ ЗАКАЗОВ</div><a href="#purchases">История покупок</a><a href="#sales">История продаж</a></nav><div class="sidebar-footer">Один аккаунт.<br>Две возможности.</div></aside><main id="content" tabindex="-1"></main></div>
   <dialog id="detail-dialog"><div class="dialog-top"><h2 id="dialog-title">Заказ</h2><button id="close-dialog" class="quiet" aria-label="Закрыть окно">Закрыть</button></div><div id="dialog-content"></div></dialog>
   <noscript>Для работы личного кабинета включите JavaScript.</noscript>
 </body></html>

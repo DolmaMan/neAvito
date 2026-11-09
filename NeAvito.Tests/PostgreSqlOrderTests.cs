@@ -110,7 +110,7 @@ internal sealed class PostgreSqlFactory : WebApplicationFactory<Program>
         var connection = new NpgsqlConnectionStringBuilder(baseConnection) { SearchPath = schema }.ConnectionString;
         builder.UseEnvironment("Testing");
         builder.ConfigureAppConfiguration((_, config) => config.AddInMemoryCollection(
-            TestAccountEmail.Settings().Append(new("ConnectionStrings:Postgres", connection))));
+            TestAccountEmail.Settings().Append(new("ConnectionStrings:Postgres", connection)).Append(new("LegacyCommerce:Enabled", "true"))));
         builder.ConfigureServices(services =>
         {
             services.AddDataProtection().UseEphemeralDataProtectionProvider();

@@ -205,6 +205,9 @@ namespace NeAvito.Migrations
                     b.Property<bool>("EmailConfirmed")
                         .HasColumnType("boolean");
 
+                    b.Property<bool>("IsBlocked")
+                        .HasColumnType("boolean");
+
                     b.Property<bool>("LockoutEnabled")
                         .HasColumnType("boolean");
 
@@ -445,6 +448,9 @@ namespace NeAvito.Migrations
                         .HasMaxLength(10000)
                         .HasColumnType("character varying(10000)");
 
+                    b.Property<bool>("LegacyImported")
+                        .HasColumnType("boolean");
+
                     b.Property<bool>("ModerationHidden")
                         .HasColumnType("boolean");
 
@@ -466,6 +472,10 @@ namespace NeAvito.Migrations
                         .IsRequired()
                         .HasMaxLength(200)
                         .HasColumnType("character varying(200)");
+
+                    b.Property<string>("TransitionNote")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
 
                     b.Property<DateTime>("UpdatedAtUtc")
                         .HasColumnType("timestamp with time zone");

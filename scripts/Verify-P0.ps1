@@ -1,3 +1,4 @@
+#Requires -Version 7.0
 param([switch]$SkipRestore)
 $ErrorActionPreference = 'Stop'
 Set-Location (Split-Path $PSScriptRoot -Parent)

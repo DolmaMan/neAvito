@@ -63,136 +63,76 @@ Content-Type: application/json
 }
 
 
-### Категории
-GET {{NeAvito_HostAddress}}/api/catalog/categories
+### Публичные справочники
+GET {{NeAvito_HostAddress}}/api/listings/categories
 
-### Каталог: поиск, фильтр категории, диапазон цен и сортировка
-GET {{NeAvito_HostAddress}}/api/catalog/products?search=телефон&categoryId=3&minPrice=100&maxPrice=100000&sort=price_asc&page=1&pageSize=20
+### Города
+GET {{NeAvito_HostAddress}}/api/listings/cities
 
-### Каталог: новые товары
-GET {{NeAvito_HostAddress}}/api/catalog/products?sort=newest&page=1&pageSize=20
+### Поиск: заголовок и описание, совместные фильтры
+GET {{NeAvito_HostAddress}}/api/listings?search=велосипед&categoryId=5&cityId=1&condition=Used&minPrice=0&maxPrice=100000&sort=price_asc&page=1&pageSize=12
 
-### Карточка: замените GUID на идентификатор опубликованного товара
-GET {{NeAvito_HostAddress}}/api/catalog/products/00000000-0000-0000-0000-000000000000
+@ListingId = 00000000-0000-0000-0000-000000000000
+@ListingVersion = 00000000-0000-0000-0000-000000000000
 
-### Создать черновик (после входа)
-POST {{NeAvito_HostAddress}}/api/seller/products
+### Публичная карточка без телефона
+GET {{NeAvito_HostAddress}}/api/listings/{{ListingId}}
+
+### Телефон: требуется вход; лимит 10/аккаунт и 30/IP за 15 минут
+GET {{NeAvito_HostAddress}}/api/listings/{{ListingId}}/contact
+
+### Свои объявления
+GET {{NeAvito_HostAddress}}/api/me/listings?page=1&pageSize=12
+
+### Частичный черновик: сохраните id и version ответа
+POST {{NeAvito_HostAddress}}/api/me/listings
+X-NeAvito-Request: 1
+Content-Type: application/json
+
+{ "title": "Велосипед" }
+
+### Получить текущую версию
+GET {{NeAvito_HostAddress}}/api/me/listings/{{ListingId}}
+
+### Редактировать: после каждого изменения обновите ListingVersion
+PUT {{NeAvito_HostAddress}}/api/me/listings/{{ListingId}}
 X-NeAvito-Request: 1
 Content-Type: application/json
 
 {
-  "name": "Телефон",
-  "description": "Телефон в хорошем состоянии",
-  "price": 12500.50,
-  "stock": 1,
-  "categoryId": 3
+  "title": "Велосипед", "description": "Исправен, самовывоз",
+  "price": 0, "categoryId": 5, "cityId": 1, "condition": "Used",
+  "phone": "+79991234567", "contactConsent": true, "version": "{{ListingVersion}}"
 }
 
-### Замените идентификатор и версию значениями ответа
-@ProductId = 00000000-0000-0000-0000-000000000000
-@ProductVersion = 00000000-0000-0000-0000-000000000000
-
-### Мои товары
-GET {{NeAvito_HostAddress}}/api/seller/products?page=1&pageSize=20
-
-### Получить свою карточку и актуальную version
-GET {{NeAvito_HostAddress}}/api/seller/products/{{ProductId}}
-
-### Редактировать товар
-PUT {{NeAvito_HostAddress}}/api/seller/products/{{ProductId}}
+### Фото: через интерфейс или multipart POST /api/me/listings/{id}/images (file, version)
+### Удаление: DELETE /api/me/listings/{id}/images/{imageId}?version={version}
+### Публикация после заполнения и добавления фото
+POST {{NeAvito_HostAddress}}/api/me/listings/{{ListingId}}/publish
 X-NeAvito-Request: 1
 Content-Type: application/json
 
-{
-  "name": "Телефон",
-  "description": "Обновленное описание",
-  "price": 12000,
-  "stock": 1,
-  "categoryId": 3,
-  "version": "{{ProductVersion}}"
-}
+{ "version": "{{ListingVersion}}" }
 
-### Опубликовать
-POST {{NeAvito_HostAddress}}/api/seller/products/{{ProductId}}/publish
-X-NeAvito-Request: 1
-
-### Снять с публикации
-POST {{NeAvito_HostAddress}}/api/seller/products/{{ProductId}}/unpublish
-X-NeAvito-Request: 1
-
-### Моя корзина
-GET {{NeAvito_HostAddress}}/api/cart
-
-### Добавить товар или установить количество (после входа)
-PUT {{NeAvito_HostAddress}}/api/cart/items/{{ProductId}}
+### Другие команды: unpublish, sold, reopen, archive; тот же JSON с актуальной version
+POST {{NeAvito_HostAddress}}/api/me/listings/{{ListingId}}/unpublish
 X-NeAvito-Request: 1
 Content-Type: application/json
 
-{
-  "quantity": 2
-}
+{ "version": "{{ListingVersion}}" }
 
-### Удалить позицию
-DELETE {{NeAvito_HostAddress}}/api/cart/items/{{ProductId}}
-X-NeAvito-Request: 1
-
-### Очистить корзину
-DELETE {{NeAvito_HostAddress}}/api/cart
-X-NeAvito-Request: 1
-
-### История моих заказов
+### История покупок (только чтение)
 GET {{NeAvito_HostAddress}}/api/orders?page=1&pageSize=20
 
-### Оформление: замените requestId новым GUID, productId, version, quantity и unitPrice данными GET /api/cart
+### История продаж (только чтение)
+GET {{NeAvito_HostAddress}}/api/seller/orders?page=1&pageSize=20
+
+### Прежний торговый API закрыт: ожидается 410
 POST {{NeAvito_HostAddress}}/api/orders/checkout
 X-NeAvito-Request: 1
 Content-Type: application/json
 
-{
-  "requestId": "11111111-1111-4111-8111-111111111111",
-  "recipientName": "Иван",
-  "phone": "+79991234567",
-  "deliveryAddress": "Согласованное место получения",
-  "items": [
-    {
-      "productId": "{{ProductId}}",
-      "version": "00000000-0000-0000-0000-000000000000",
-      "quantity": 1,
-      "unitPrice": 12000
-    }
-  ]
-}
-
-@OrderId = 00000000-0000-0000-0000-000000000000
-
-### Карточка моего заказа (покупатель)
-GET {{NeAvito_HostAddress}}/api/orders/{{OrderId}}
-
-### Отмена покупателем
-POST {{NeAvito_HostAddress}}/api/orders/{{OrderId}}/cancel
-X-NeAvito-Request: 1
-
-### Полученные заказы (продавец)
-GET {{NeAvito_HostAddress}}/api/seller/orders?page=1&pageSize=20
-
-### Подтвердить заказ (продавец)
-POST {{NeAvito_HostAddress}}/api/seller/orders/{{OrderId}}/status
-X-NeAvito-Request: 1
-Content-Type: application/json
-
-{
-  "status": "Confirmed"
-}
-
-### Завершить заказ (продавец)
-POST {{NeAvito_HostAddress}}/api/seller/orders/{{OrderId}}/status
-X-NeAvito-Request: 1
-Content-Type: application/json
-
-{
-  "status": "Completed"
-}
-
+{}
 
 ### Мой профиль
 GET {{NeAvito_HostAddress}}/api/profile

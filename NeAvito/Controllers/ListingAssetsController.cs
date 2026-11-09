@@ -19,7 +19,8 @@ public sealed class ListingAssetsController(AppDbContext db, ProductImageStorage
     {
         var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
         var visible = await db.ListingImages.AnyAsync(x => x.Id == id && (x.Listing.AuthorId == userId ||
-            x.Listing.Status == ListingStatus.Published && !x.Listing.ModerationHidden), ct);
+            x.Listing.Status == ListingStatus.Published && !x.Listing.ModerationHidden &&
+            db.Users.Any(u => u.Id == x.Listing.AuthorId && !u.IsBlocked && u.EmailConfirmed)), ct);
         var path = storage.PathFor(id);
         if (!visible || !System.IO.File.Exists(path)) return NotFound();
         Response.Headers.CacheControl = "no-store";

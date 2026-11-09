@@ -24,6 +24,14 @@ builder.Services.AddOptions<AccountEmailOptions>().BindConfiguration("AccountEma
 builder.Services.AddTransient<IAccountEmail, AccountEmail>();
 builder.Services.AddRateLimiter(options =>
 {
+    options.GlobalLimiter = PartitionedRateLimiter.Create<HttpContext, string>(context =>
+        context.Request.Path.StartsWithSegments("/api/listings") && context.Request.Path.Value!.EndsWith("/contact", StringComparison.OrdinalIgnoreCase)
+            ? RateLimitPartition.GetFixedWindowLimiter(context.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+                _ => new FixedWindowRateLimiterOptions { PermitLimit = 30, Window = TimeSpan.FromMinutes(15) })
+            : RateLimitPartition.GetNoLimiter("other"));
+    options.AddPolicy("contact-account", context => RateLimitPartition.GetFixedWindowLimiter(
+        context.User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value ?? "anonymous",
+        _ => new FixedWindowRateLimiterOptions { PermitLimit = 10, Window = TimeSpan.FromMinutes(15) }));
     options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
     options.OnRejected = (context, cancellation) =>
     {
@@ -83,11 +91,35 @@ app.Use(async (context, next) =>
     await next();
 });
 app.UseDefaultFiles();
-app.UseStaticFiles();
+app.UseStaticFiles(new StaticFileOptions
+{
+    // Revalidate the shell and scripts so an API upgrade cannot leave a cached UI behind.
+    OnPrepareResponse = context => context.Context.Response.Headers.CacheControl = "no-cache"
+});
 app.UseRouting();
-app.UseRateLimiter();
 app.UseAuthentication();
+app.UseRateLimiter();
 app.UseAuthorization();
+// Legacy regression fixtures may exercise the former API only in the Testing environment.
+if (!(app.Environment.IsEnvironment("Testing") && app.Configuration.GetValue<bool>("LegacyCommerce:Enabled")))
+    app.Use(async (context, next) =>
+    {
+        var path = context.Request.Path;
+        if (path.StartsWithSegments("/api/cart") || path.StartsWithSegments("/api/seller/products") ||
+            context.Request.Method is not ("GET" or "HEAD") &&
+            (path.StartsWithSegments("/api/orders") || path.StartsWithSegments("/api/seller/orders")))
+        {
+            context.Response.StatusCode = StatusCodes.Status410Gone;
+            await context.Response.WriteAsJsonAsync(new { message = "Покупки через корзину закрыты. Свяжитесь с автором объявления. История заказов доступна для чтения." });
+            return;
+        }
+        string? redirect = null;
+        if (path.StartsWithSegments("/api/catalog/products", out var rest)) redirect = "/api/listings" + rest;
+        if (path == "/api/catalog/categories") redirect = "/api/listings/categories";
+        if (path.StartsWithSegments("/api/product-images", out rest)) redirect = "/api/listing-images" + rest;
+        if (redirect is not null) { context.Response.Redirect(redirect + context.Request.QueryString); return; }
+        await next();
+    });
 app.MapControllers();
 app.Run();
 public partial class Program { }

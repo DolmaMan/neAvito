@@ -40,7 +40,7 @@ internal sealed class AccountCookieEvents(AppDbContext db, SignInManager<AppUser
             && Guid.TryParseExact(value, "N", out var sessionId)
             && await db.AccountSessions.AnyAsync(session => session.Id == sessionId && session.UserId == userId
                 && session.ExpiresAtUtc > now, context.HttpContext.RequestAborted)
-            && await signIn.ValidateSecurityStampAsync(context.Principal) is { EmailConfirmed: true } user)
+            && await signIn.ValidateSecurityStampAsync(context.Principal) is { EmailConfirmed: true, IsBlocked: false } user)
         {
             validatedSession = sessionId;
             context.ReplacePrincipal(await signIn.CreateUserPrincipalAsync(user));

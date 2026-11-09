@@ -33,7 +33,7 @@ public sealed class MyListingsController(AppDbContext db, ProductImageStorage st
     {
         x.Id, x.Title, x.Description, Price = x.PriceMinor / 100m, Currency = "RUB", x.CategoryId, x.CityId,
         Condition = x.Condition?.ToString(), Status = x.Status.ToString(), x.Version, x.CreatedAtUtc, x.UpdatedAtUtc,
-        x.PublishedAtUtc, x.SoldAtUtc, x.ArchivedAtUtc, x.ModerationHidden,
+        x.PublishedAtUtc, x.SoldAtUtc, x.ArchivedAtUtc, x.ModerationHidden, x.LegacyImported, x.TransitionNote,
         Phone = x.Contact.Phone, ContactConsent = x.Contact.ConsentedAtUtc is not null, x.Contact.ConsentedAtUtc,
         PublicationErrors = Missing(x),
         Images = x.Images.OrderBy(i => i.Position).Select(i => new { i.Id, i.Position, Url = $"/api/listing-images/{i.Id}" })

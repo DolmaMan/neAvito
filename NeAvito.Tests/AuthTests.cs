@@ -273,7 +273,7 @@ public sealed class AuthTests
         new { email = "buyer@example.com", password });
 }
 
-internal sealed class AuthFactory(bool useLocalMail = false) : WebApplicationFactory<Program>
+internal sealed class AuthFactory(bool useLocalMail = false, bool enableLegacy = true) : WebApplicationFactory<Program>
 {
     private readonly string imageRoot = Path.Combine(Path.GetTempPath(), "neavito-tests", Guid.NewGuid().ToString("N"));
     private readonly SqliteConnection connection = new("Data Source=:memory:");
@@ -291,6 +291,7 @@ internal sealed class AuthFactory(bool useLocalMail = false) : WebApplicationFac
             TestAccountEmail.Settings().Concat(new Dictionary<string, string?>
             {
                 ["ConnectionStrings:Postgres"] = "Host=unused", ["Images:StoragePath"] = imageRoot,
+                ["LegacyCommerce:Enabled"] = enableLegacy.ToString(),
                 ["AccountEmail:PickupDirectory"] = useLocalMail ? MailDirectory : ""
             })));
         builder.ConfigureServices(services =>

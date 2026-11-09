@@ -21,6 +21,8 @@ public sealed class Listing
     public ItemCondition? Condition { get; set; }
     public ListingStatus Status { get; set; }
     public bool ModerationHidden { get; set; }
+    public bool LegacyImported { get; set; }
+    public string? TransitionNote { get; set; }
     public Guid Version { get; set; } = Guid.NewGuid();
     public DateTime CreatedAtUtc { get; set; } = DateTime.UtcNow;
     public DateTime UpdatedAtUtc { get; set; } = DateTime.UtcNow;

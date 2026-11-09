@@ -41,6 +41,8 @@ public sealed class AuthController(UserManager<AppUser> users, SignInManager<App
     [EnableRateLimiting("auth-login")]
     public async Task<IActionResult> Login(LoginRequest request)
     {
+        if (await users.FindByEmailAsync(request.Email.Trim()) is { IsBlocked: true })
+            return Unauthorized(new { message = "Неверные учетные данные или вход временно заблокирован." });
         var result = await signIn.PasswordSignInAsync(request.Email.Trim(), request.Password, false, true);
         return result.Succeeded ? Ok(new { message = "Вход выполнен." })
             : Unauthorized(new { message = "Неверные учетные данные или вход временно заблокирован." });

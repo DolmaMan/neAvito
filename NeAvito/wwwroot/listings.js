@@ -23,7 +23,7 @@ async function renderListings() {
       const page=Math.max(1,Number(params.get('page'))||1);
       const data=await api(`/api/me/listings?page=${page}&pageSize=12`);
       html=pageHeader('Мои объявления','Размещайте вещи и управляйте публикациями.','<a class="page-link" href="#listing">Добавить объявление</a>')+
-        '<p class="muted small">Новый модуль объявлений. Публичный поиск и контакты будут подключены на следующем этапе.</p>'+
+        ''+
         (data.items.length?'<div class="cards">'+data.items.map(p=>`<article class="product-card">${p.images.length?`<img class="product-cover" src="${escapeHtml(p.images[0].url)}" alt="">`:'<div class="product-cover">Без фото</div>'}<div class="product-body">${listingState(p.status)}<h2>${escapeHtml(p.title||'Без заголовка')}</h2><p>${p.price===null?'Цена не указана':p.price===0?'Бесплатно':money(p.price)}</p><a class="page-link" href="#listing?id=${p.id}">Открыть</a></div></article>`).join('')+'</div>':empty('Пока нет объявлений','Начните с черновика — его можно заполнить частично.'))+pagination(data,'listings');
     } else {
       const id=params.get('id');
@@ -54,7 +54,7 @@ function listingEditor(p,categories,cities) {
   const actions=p?({Draft:['publish'],Published:['unpublish','sold'],Unpublished:['publish','archive'],Sold:['reopen','archive'],Archived:[]}[p.status]):[];
   const actionLabels={publish:'Опубликовать',unpublish:'Снять с публикации',sold:'Отметить проданным',reopen:'Вернуть в снятые',archive:'В архив'};
   return '<a class="page-link" href="#listings">← Мои объявления</a>'+pageHeader(p?'Объявление':'Новое объявление','Черновик можно сохранить частично. Для публикации заполните все поля и добавьте фото.')+
-    `<section class="panel"><form id="listing-form"><fieldset ${locked?'disabled':''}>
+    `${p?.transitionNote?`<p class="panel">${escapeHtml(p.transitionNote)}</p>`:""}<section class="panel"><form id="listing-form"><fieldset ${locked?'disabled':''}>
     <label>Заголовок<input name="title" maxlength="200" value="${escapeHtml(p?.title)}"></label>
     <label>Описание<textarea name="description" maxlength="10000">${escapeHtml(p?.description)}</textarea></label>
     <label>Цена, ₽ (0 — бесплатно)<input name="price" type="number" min="0" max="1000000000" step="0.01" value="${p?.price??''}"></label>
