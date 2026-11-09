@@ -39,6 +39,20 @@ GET {{NeAvito_HostAddress}}/api/auth/me
 POST {{NeAvito_HostAddress}}/api/auth/logout
 X-NeAvito-Request: 1
 
+### Смена пароля из профиля (после входа; завершает все прежние сеансы)
+POST {{NeAvito_HostAddress}}/api/auth/change-password
+X-NeAvito-Request: 1
+Content-Type: application/json
+
+{
+  "currentPassword": "TestPassword123!",
+  "newPassword": "UpdatedPassword456!"
+}
+
+### Выйти на всех устройствах, включая текущее (после входа)
+POST {{NeAvito_HostAddress}}/api/auth/logout-all
+X-NeAvito-Request: 1
+
 ### Запросить восстановление, затем открыть ссылку из письма и указать новый пароль
 POST {{NeAvito_HostAddress}}/api/auth/forgot-password
 X-NeAvito-Request: 1

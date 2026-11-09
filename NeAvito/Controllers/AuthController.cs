@@ -94,6 +94,35 @@ public sealed class AuthController(UserManager<AppUser> users, SignInManager<App
     }
 
     [Authorize]
+    [HttpPost("change-password")]
+    [EnableRateLimiting("auth-login")]
+    public async Task<IActionResult> ChangePassword(ChangePasswordRequest request)
+    {
+        var user = await users.GetUserAsync(User);
+        if (user is null) return Unauthorized();
+        if (request.CurrentPassword == request.NewPassword)
+            return BadRequest(new { message = "Новый пароль должен отличаться от текущего." });
+        // Identity verifies the current password and changes the security stamp atomically.
+        var result = await users.ChangePasswordAsync(user, request.CurrentPassword, request.NewPassword);
+        if (!result.Succeeded) return IdentityErrors(result);
+        await signIn.SignOutAsync();
+        return NoContent();
+    }
+
+    [Authorize]
+    [HttpPost("logout-all")]
+    [EnableRateLimiting("auth-login")]
+    public async Task<IActionResult> LogoutAll()
+    {
+        var user = await users.GetUserAsync(User);
+        if (user is null) return Unauthorized();
+        var result = await users.UpdateSecurityStampAsync(user);
+        if (!result.Succeeded) return IdentityErrors(result);
+        await signIn.SignOutAsync();
+        return NoContent();
+    }
+
+    [Authorize]
     [HttpPost("logout")]
     public async Task<IActionResult> Logout()
     {
@@ -130,6 +159,9 @@ public sealed record LoginRequest(
     [Required, EmailAddress, MaxLength(256)] string Email,
     [Required, MaxLength(128)] string Password);
 public sealed record EmailRequest([Required, EmailAddress, MaxLength(256)] string Email);
+public sealed record ChangePasswordRequest(
+    [Required, MaxLength(128)] string CurrentPassword,
+    [Required, MinLength(8), MaxLength(128)] string NewPassword);
 public sealed record AccountTokenRequest(
     [Required, MaxLength(450)] string UserId,
     [Required, MaxLength(4096)] string Token);

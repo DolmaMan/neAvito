@@ -46,6 +46,7 @@ public sealed class ProfileTests
         Assert.Contains("Личный кабинет", await page.Content.ReadAsStringAsync());
         Assert.True(page.Headers.Contains("Content-Security-Policy"));
         Assert.Equal(HttpStatusCode.OK, (await client.GetAsync("/app.js")).StatusCode);
+        Assert.Equal(HttpStatusCode.OK, (await client.GetAsync("/account-security.js")).StatusCode);
         Assert.Equal(HttpStatusCode.OK, (await client.GetAsync("/app.css")).StatusCode);
     }
 }

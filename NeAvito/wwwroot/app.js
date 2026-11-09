@@ -29,6 +29,8 @@ async function api(path, options = {}) {
       throw new Error('Сессия завершилась. Войдите снова.');
     }
     const identityErrors = { DuplicateUserName:'Эта почта уже зарегистрирована.', DuplicateEmail:'Эта почта уже зарегистрирована.', PasswordTooShort:'Пароль должен содержать не менее 8 символов.', PasswordRequiresNonAlphanumeric:'Добавьте в пароль специальный символ.', PasswordRequiresDigit:'Добавьте в пароль цифру.', PasswordRequiresUpper:'Добавьте в пароль прописную латинскую букву.', PasswordRequiresLower:'Добавьте в пароль строчную латинскую букву.' };
+    identityErrors.PasswordMismatch = 'Текущий пароль указан неверно.';
+    identityErrors.ConcurrencyFailure = 'Данные аккаунта изменились. Обновите страницу и повторите действие.';
     let message = data?.message;
     if (!message && data?.errors) message = Array.isArray(data.errors) ? data.errors.map(x => identityErrors[x.code] || x.description).join('\n') : 'Проверьте заполнение полей формы.';
     throw new Error(message || (response.status === 404 ? 'Запись не найдена или недоступна.' : 'Не удалось выполнить действие. Повторите попытку.'));
@@ -45,6 +47,7 @@ const authCopy = {
 };
 
 function authMode(mode) {
+  concealPasswords();
   activeAuthMode = mode;
   const register = mode === 'register';
   const reset = mode === 'reset-password';
@@ -173,13 +176,18 @@ async function render() {
   $('#content').innerHTML = '<p class="loading">Загружаем данные…</p>';
   try {
     let html;
-    if (section === 'profile') { const fresh = await api('/api/profile'); if (token !== routeCounter) return; profile = fresh; html = profilePage(); }
+    if (section === 'profile') { const fresh = await api('/api/profile'); if (token !== routeCounter) return; profile = fresh; html = profilePage() + accountSecurityPage(); }
     if (section === 'products') { const data = await api(`/api/seller/products?page=${page}&pageSize=8`); html = productsPage(data); }
     if (section === 'purchases' || section === 'sales') { const data = await api(`${section === 'sales' ? '/api/seller/orders' : '/api/orders'}?page=${page}&pageSize=10`); html = ordersPage(data,section); }
     if (section === 'product') { const id = params.get('id'); const [cats,product] = await Promise.all([api('/api/catalog/categories'), id ? api('/api/seller/products/' + encodeURIComponent(id)) : Promise.resolve(null)]); if (token !== routeCounter) return; categories = cats; currentProduct = product; productDirty = false; html = editorPage(product); }
     if (token !== routeCounter) return;
     $('#content').innerHTML = html; document.title = ({profile:'Мой профиль',products:'Мои товары',purchases:'Мои покупки',sales:'Полученные заказы',product:'Редактирование товара'}[section]) + ' — NeAvito';
-    if (section === 'profile') $('#profile-form').addEventListener('submit', saveProfile);
+    if (section === 'profile') {
+      initializePasswordToggles($('#content'));
+      $('#profile-form').addEventListener('submit', saveProfile);
+      $('#change-password-form').addEventListener('submit', changeAccountPassword);
+      $('#logout-all').addEventListener('click', logoutEverywhere);
+    }
     if (section === 'product') { $('#product-form').addEventListener('submit', saveProduct); $('#product-form').addEventListener('input', () => { productDirty = true; }); $('#image-file')?.addEventListener('change', uploadImage); }
   } catch(error) { if (token === routeCounter && profile) { $('#content').innerHTML = '<div class="panel"><h2>Не удалось загрузить раздел</h2><p id="load-error" class="error"></p><button data-action="reload">Повторить</button></div>'; $('#load-error').textContent = error.message; } }
 }

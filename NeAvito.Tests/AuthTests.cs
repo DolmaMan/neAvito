@@ -190,6 +190,83 @@ public sealed class AuthTests
         Assert.Equal(HttpStatusCode.OK, (await Login(client, "TestPassword123!")).StatusCode);
     }
 
+    [Fact]
+    public async Task ChangePasswordRevokesEverySessionAndRequiresNewCredentials()
+    {
+        using var app = new AuthFactory();
+        using var client = app.Client();
+        using var other = app.Client();
+        await Register(client);
+        await TestAccountEmail.Confirm(app, client, "buyer@example.com");
+        await Login(client, "TestPassword123!");
+        await Login(other, "TestPassword123!");
+        Assert.Equal(HttpStatusCode.NoContent, (await client.PostAsJsonAsync("/api/auth/change-password",
+            new { currentPassword = "TestPassword123!", newPassword = "UpdatedPassword456!" })).StatusCode);
+        Assert.Equal(HttpStatusCode.Unauthorized, (await client.GetAsync("/api/auth/me")).StatusCode);
+        Assert.Equal(HttpStatusCode.Unauthorized, (await other.GetAsync("/api/profile")).StatusCode);
+        Assert.Equal(HttpStatusCode.Unauthorized, (await Login(client, "TestPassword123!")).StatusCode);
+        Assert.Equal(HttpStatusCode.OK, (await Login(client, "UpdatedPassword456!")).StatusCode);
+    }
+
+    [Theory]
+    [InlineData("WrongPassword123!", "UpdatedPassword456!")]
+    [InlineData("TestPassword123!", "weak")]
+    [InlineData("TestPassword123!", "TestPassword123!")]
+    public async Task InvalidPasswordChangePreservesCredentialsAndSessions(string currentPassword, string newPassword)
+    {
+        using var app = new AuthFactory();
+        using var client = app.Client();
+        using var other = app.Client();
+        await Register(client);
+        await TestAccountEmail.Confirm(app, client, "buyer@example.com");
+        await Login(client, "TestPassword123!");
+        await Login(other, "TestPassword123!");
+        Assert.Equal(HttpStatusCode.BadRequest, (await client.PostAsJsonAsync("/api/auth/change-password",
+            new { currentPassword, newPassword })).StatusCode);
+        Assert.Equal(HttpStatusCode.OK, (await client.GetAsync("/api/profile")).StatusCode);
+        Assert.Equal(HttpStatusCode.OK, (await other.GetAsync("/api/profile")).StatusCode);
+        Assert.Equal(HttpStatusCode.OK, (await Login(client, "TestPassword123!")).StatusCode);
+    }
+
+    [Fact]
+    public async Task LogoutAllRevokesCopiedCookiesButDoesNotAffectAnotherAccount()
+    {
+        using var app = new AuthFactory();
+        using var client = app.Client();
+        using var other = app.Client();
+        using var replay = app.Client(handleCookies: false);
+        using var unrelated = await OrderTests.Account(app, "unrelated");
+        await Register(client);
+        await TestAccountEmail.Confirm(app, client, "buyer@example.com");
+        using var login = await Login(client, "TestPassword123!");
+        var cookie = Assert.Single(login.Headers.GetValues("Set-Cookie"), value => value.StartsWith("NeAvito.Auth="));
+        replay.DefaultRequestHeaders.Add("Cookie", cookie.Split(';', 2)[0]);
+        await Login(other, "TestPassword123!");
+        Assert.Equal(HttpStatusCode.NoContent, (await client.PostAsync("/api/auth/logout-all", null)).StatusCode);
+        foreach (var session in new[] { client, other, replay })
+            Assert.Equal(HttpStatusCode.Unauthorized, (await session.GetAsync("/api/profile")).StatusCode);
+        Assert.Equal(HttpStatusCode.OK, (await unrelated.GetAsync("/api/profile")).StatusCode);
+        Assert.Equal(HttpStatusCode.OK, (await Login(client, "TestPassword123!")).StatusCode);
+        Assert.Equal(HttpStatusCode.Unauthorized, (await replay.GetAsync("/api/profile")).StatusCode);
+    }
+
+    [Fact]
+    public async Task SecurityActionsRequireAuthenticationAndBrowserMutationHeader()
+    {
+        using var app = new AuthFactory();
+        using var client = app.Client();
+        var change = new { currentPassword = "TestPassword123!", newPassword = "UpdatedPassword456!" };
+        Assert.Equal(HttpStatusCode.Unauthorized, (await client.PostAsJsonAsync("/api/auth/change-password", change)).StatusCode);
+        Assert.Equal(HttpStatusCode.Unauthorized, (await client.PostAsync("/api/auth/logout-all", null)).StatusCode);
+        await Register(client);
+        await TestAccountEmail.Confirm(app, client, "buyer@example.com");
+        await Login(client, "TestPassword123!");
+        client.DefaultRequestHeaders.Remove("X-NeAvito-Request");
+        Assert.Equal(HttpStatusCode.Forbidden, (await client.PostAsJsonAsync("/api/auth/change-password", change)).StatusCode);
+        Assert.Equal(HttpStatusCode.Forbidden, (await client.PostAsync("/api/auth/logout-all", null)).StatusCode);
+        Assert.Equal(HttpStatusCode.OK, (await client.GetAsync("/api/auth/me")).StatusCode);
+    }
+
     private static Task<HttpResponseMessage> Register(HttpClient client) => client.PostAsJsonAsync("/api/auth/register",
         new { email = "buyer@example.com", password = "TestPassword123!", displayName = "Buyer" });
     private static Task<HttpResponseMessage> Login(HttpClient client, string password) => client.PostAsJsonAsync("/api/auth/login",
