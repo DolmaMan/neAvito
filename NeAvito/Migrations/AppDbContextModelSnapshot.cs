@@ -361,6 +361,173 @@ namespace NeAvito.Migrations
                     b.ToTable("CheckoutBatches");
                 });
 
+            modelBuilder.Entity("NeAvito.Models.City", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Name")
+                        .IsUnique();
+
+                    b.ToTable("Cities");
+
+                    b.HasData(
+                        new
+                        {
+                            Id = 1,
+                            Name = "Иркутск"
+                        },
+                        new
+                        {
+                            Id = 2,
+                            Name = "Ангарск"
+                        },
+                        new
+                        {
+                            Id = 3,
+                            Name = "Шелехов"
+                        },
+                        new
+                        {
+                            Id = 4,
+                            Name = "Москва"
+                        },
+                        new
+                        {
+                            Id = 5,
+                            Name = "Санкт-Петербург"
+                        },
+                        new
+                        {
+                            Id = 6,
+                            Name = "Новосибирск"
+                        });
+                });
+
+            modelBuilder.Entity("NeAvito.Models.Listing", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("ArchivedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("AuthorId")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<int?>("CategoryId")
+                        .HasColumnType("integer");
+
+                    b.Property<int?>("CityId")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("Condition")
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
+
+                    b.Property<DateTime>("CreatedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Description")
+                        .IsRequired()
+                        .HasMaxLength(10000)
+                        .HasColumnType("character varying(10000)");
+
+                    b.Property<bool>("ModerationHidden")
+                        .HasColumnType("boolean");
+
+                    b.Property<long?>("PriceMinor")
+                        .HasColumnType("bigint");
+
+                    b.Property<DateTime?>("PublishedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime?>("SoldAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<DateTime>("UpdatedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("Version")
+                        .IsConcurrencyToken()
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CategoryId");
+
+                    b.HasIndex("CityId");
+
+                    b.HasIndex("AuthorId", "CreatedAtUtc", "Id");
+
+                    b.HasIndex("Status", "CityId", "CategoryId", "PriceMinor");
+
+                    b.ToTable("Listings", t =>
+                        {
+                            t.HasCheckConstraint("CK_Listings_Price", "\"PriceMinor\" IS NULL OR (\"PriceMinor\" >= 0 AND \"PriceMinor\" <= 100000000000)");
+                        });
+                });
+
+            modelBuilder.Entity("NeAvito.Models.ListingContact", b =>
+                {
+                    b.Property<Guid>("ListingId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("ConsentedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Phone")
+                        .IsRequired()
+                        .HasMaxLength(30)
+                        .HasColumnType("character varying(30)");
+
+                    b.HasKey("ListingId");
+
+                    b.ToTable("ListingContact");
+                });
+
+            modelBuilder.Entity("NeAvito.Models.ListingImage", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("ListingId")
+                        .HasColumnType("uuid");
+
+                    b.Property<int>("Position")
+                        .HasColumnType("integer");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ListingId", "Position")
+                        .IsUnique();
+
+                    b.ToTable("ListingImages");
+                });
+
             modelBuilder.Entity("NeAvito.Models.Order", b =>
                 {
                     b.Property<Guid>("Id")
@@ -640,6 +807,45 @@ namespace NeAvito.Migrations
                     b.Navigation("Buyer");
                 });
 
+            modelBuilder.Entity("NeAvito.Models.Listing", b =>
+                {
+                    b.HasOne("NeAvito.Models.AppUser", null)
+                        .WithMany()
+                        .HasForeignKey("AuthorId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("NeAvito.Models.Category", null)
+                        .WithMany()
+                        .HasForeignKey("CategoryId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("NeAvito.Models.City", null)
+                        .WithMany()
+                        .HasForeignKey("CityId")
+                        .OnDelete(DeleteBehavior.Restrict);
+                });
+
+            modelBuilder.Entity("NeAvito.Models.ListingContact", b =>
+                {
+                    b.HasOne("NeAvito.Models.Listing", null)
+                        .WithOne("Contact")
+                        .HasForeignKey("NeAvito.Models.ListingContact", "ListingId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("NeAvito.Models.ListingImage", b =>
+                {
+                    b.HasOne("NeAvito.Models.Listing", "Listing")
+                        .WithMany("Images")
+                        .HasForeignKey("ListingId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Listing");
+                });
+
             modelBuilder.Entity("NeAvito.Models.Order", b =>
                 {
                     b.HasOne("NeAvito.Models.AppUser", "Buyer")
@@ -719,6 +925,14 @@ namespace NeAvito.Migrations
             modelBuilder.Entity("NeAvito.Models.CheckoutBatch", b =>
                 {
                     b.Navigation("Orders");
+                });
+
+            modelBuilder.Entity("NeAvito.Models.Listing", b =>
+                {
+                    b.Navigation("Contact")
+                        .IsRequired();
+
+                    b.Navigation("Images");
                 });
 
             modelBuilder.Entity("NeAvito.Models.Order", b =>

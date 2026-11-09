@@ -21,7 +21,7 @@ async function api(path, options = {}) {
     if (response.status === 401 && profile && path !== '/api/auth/login') {
       profile = null;
       const section = location.hash.slice(1).split('?')[0];
-      if (['item', 'profile', 'purchases', 'products', 'sales', 'product'].includes(section)) loginReturnHash = location.hash;
+      if (['item', 'profile', 'purchases', 'products', 'sales', 'product', 'listings', 'listing'].includes(section)) loginReturnHash = location.hash;
       history.replaceState(null, '', '#login');
       authMode('login');
       showAuth();
@@ -167,6 +167,7 @@ async function render() {
   if (!activeRoute || activeRoute === 'catalog' || activeRoute === 'item') return renderStorefront();
   if (!profile) { if (activeRoute !== 'login') loginReturnHash = location.hash; authMode('login'); showAuth(); return; }
   if (activeRoute === 'login') { location.hash = '#profile'; return; }
+  if (activeRoute === 'listings' || activeRoute === 'listing') return renderListings();
   $('#storefront').hidden = true; $('#auth-screen').hidden = true; $('#cabinet').hidden = false; updateStoreHeader();
   const token = ++routeCounter;
   const [route = 'profile', query = ''] = location.hash.slice(1).split('?');

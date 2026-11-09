@@ -27,6 +27,22 @@ public sealed class PostgreSqlFactAttribute : FactAttribute
 public sealed class PostgreSqlOrderTests
 {
     [PostgreSqlFact]
+    public async Task ConcurrentListingEditsAcceptOnlyOneVersion()
+    {
+        using var app = new PostgreSqlFactory(); app.Initialize();
+        using var owner = await OrderTests.Account(app, "listing-owner");
+        using var created = await owner.PostAsJsonAsync("/api/me/listings", new { title = "Before" });
+        Assert.Equal(HttpStatusCode.Created, created.StatusCode);
+        var listing = await created.Content.ReadFromJsonAsync<JsonElement>();
+        var url = "/api/me/listings/" + listing.GetProperty("id").GetGuid();
+        var version = listing.GetProperty("version").GetGuid();
+        var results = await Task.WhenAll(owner.PutAsJsonAsync(url, new { title = "First", version }),
+            owner.PutAsJsonAsync(url, new { title = "Second", version }));
+        Assert.Single(results, response => response.StatusCode == HttpStatusCode.OK);
+        Assert.Single(results, response => response.StatusCode == HttpStatusCode.Conflict);
+    }
+
+    [PostgreSqlFact]
     public async Task ConcurrentBuyersCannotPurchaseTheSameLastItem()
     {
         using var app = new PostgreSqlFactory();
