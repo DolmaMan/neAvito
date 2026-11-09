@@ -11,7 +11,18 @@ Content-Type: application/json
   "displayName": "Покупатель"
 }
 
-### Вход (клиент должен сохранять cookie)
+### Повторная отправка письма подтверждения
+POST {{NeAvito_HostAddress}}/api/auth/resend-confirmation
+X-NeAvito-Request: 1
+Content-Type: application/json
+
+{
+  "email": "buyer@example.com"
+}
+
+### Подтвердите почту, открыв ссылку из письма и нажав «Подтвердить почту»
+
+### Вход после подтверждения (клиент должен сохранять cookie)
 POST {{NeAvito_HostAddress}}/api/auth/login
 X-NeAvito-Request: 1
 Content-Type: application/json
@@ -27,6 +38,15 @@ GET {{NeAvito_HostAddress}}/api/auth/me
 ### Выход
 POST {{NeAvito_HostAddress}}/api/auth/logout
 X-NeAvito-Request: 1
+
+### Запросить восстановление, затем открыть ссылку из письма и указать новый пароль
+POST {{NeAvito_HostAddress}}/api/auth/forgot-password
+X-NeAvito-Request: 1
+Content-Type: application/json
+
+{
+  "email": "buyer@example.com"
+}
 
 
 ### Категории

@@ -5,10 +5,11 @@ const money = value => new Intl.NumberFormat('ru-RU', { style:'currency', curren
 const date = value => new Intl.DateTimeFormat('ru-RU', { dateStyle:'medium' }).format(new Date(value));
 const labels = { Draft:'Черновик', Published:'Опубликован', Unpublished:'Снят с публикации', New:'Новый', Confirmed:'Подтвержден', Completed:'Завершен', Cancelled:'Отменен' };
 const badge = status => `<span class="badge ${escapeHtml(status)}">${escapeHtml(labels[status] || status)}</span>`;
-let profile = null, registerMode = false, routeCounter = 0, noticeTimer, currentProduct = null, productDirty = false;
+let profile = null, routeCounter = 0, noticeTimer, currentProduct = null, productDirty = false;
+let activeAuthMode = 'login', accountLink = null;
 let categories = [];
 function notify(message) { const box = $('#notice'); box.textContent = message; box.hidden = false; clearTimeout(noticeTimer); noticeTimer = setTimeout(() => { box.hidden = true; }, 6000); }
-function showAuth() { profile = null; $('#storefront').hidden = true; $('#guest-login').hidden = false; $('#cart-count').hidden = true; routeCounter++; $('#cabinet').hidden = true; $('#userbar').hidden = true; $('#auth-screen').hidden = false; $('#content').replaceChildren(); $('#detail-dialog').close(); }
+function showAuth() { $('#storefront').hidden = true; $('#guest-login').hidden = !!profile; $('#cart-count').hidden = true; routeCounter++; $('#cabinet').hidden = true; $('#userbar').hidden = true; $('#auth-screen').hidden = false; $('#content').replaceChildren(); $('#detail-dialog').close(); }
 async function api(path, options = {}) {
   const headers = { 'X-NeAvito-Request':'1', ...options.headers };
   if (options.body && !(options.body instanceof FormData)) headers['Content-Type'] = 'application/json';
@@ -17,7 +18,16 @@ async function api(path, options = {}) {
   catch { throw new Error('Не удалось связаться с сервером. Проверьте подключение и повторите действие.'); }
   const data = response.status === 204 ? null : await response.json().catch(() => null);
   if (!response.ok) {
-    if (response.status === 401 && profile) { showAuth(); throw new Error('Сессия завершилась. Войдите снова.'); }
+    if (response.status === 401 && profile && path !== '/api/auth/login') {
+      profile = null;
+      const section = location.hash.slice(1).split('?')[0];
+      if (['item', 'profile', 'purchases', 'products', 'sales', 'product'].includes(section)) loginReturnHash = location.hash;
+      history.replaceState(null, '', '#login');
+      authMode('login');
+      showAuth();
+      notify('Сессия завершилась. Войдите снова.');
+      throw new Error('Сессия завершилась. Войдите снова.');
+    }
     const identityErrors = { DuplicateUserName:'Эта почта уже зарегистрирована.', DuplicateEmail:'Эта почта уже зарегистрирована.', PasswordTooShort:'Пароль должен содержать не менее 8 символов.', PasswordRequiresNonAlphanumeric:'Добавьте в пароль специальный символ.', PasswordRequiresDigit:'Добавьте в пароль цифру.', PasswordRequiresUpper:'Добавьте в пароль прописную латинскую букву.', PasswordRequiresLower:'Добавьте в пароль строчную латинскую букву.' };
     let message = data?.message;
     if (!message && data?.errors) message = Array.isArray(data.errors) ? data.errors.map(x => identityErrors[x.code] || x.description).join('\n') : 'Проверьте заполнение полей формы.';
@@ -25,10 +35,109 @@ async function api(path, options = {}) {
   }
   return data;
 }
-function authMode(register) { registerMode = register; $('#register-name').hidden = !register; $('#register-name input').required = register; $('#password-hint').hidden = !register; $('#auth-title').textContent = register ? 'Начнем знакомство' : 'Рады видеть вас снова'; $('#auth-hint').textContent = register ? 'Создайте аккаунт для покупок и продаж.' : 'Войдите, чтобы открыть личный кабинет.'; $('#auth-submit').textContent = register ? 'Создать аккаунт' : 'Войти'; $('#login-tab').classList.toggle('selected', !register); $('#register-tab').classList.toggle('selected', register); $('#auth-form [name=password]').autocomplete = register ? 'new-password' : 'current-password'; $('#auth-form [name=password]').minLength = register ? 8 : 1; $('#auth-error').textContent = ''; }
-$('#login-tab').addEventListener('click', () => authMode(false));
-$('#register-tab').addEventListener('click', () => authMode(true));
-$('#auth-form').addEventListener('submit', async event => { event.preventDefault(); const button = $('#auth-submit'); button.disabled = true; $('#auth-error').textContent = ''; const data = Object.fromEntries(new FormData(event.target)); try { if (registerMode) { await api('/api/auth/register', {method:'POST',body:JSON.stringify(data)}); authMode(false); notify('Аккаунт создан. Выполняем вход.'); } await api('/api/auth/login', {method:'POST',body:JSON.stringify({email:data.email,password:data.password})}); event.target.reset(); await openCabinet(); } catch(error) { $('#auth-error').textContent = error.message; } finally { button.disabled = false; } });
+const authCopy = {
+  login: ['Вход', 'Войдите, чтобы открыть личный кабинет. Перед первым входом подтвердите почту.', 'Войти'],
+  register: ['Регистрация', 'Создайте аккаунт, чтобы размещать объявления и связываться с авторами.', 'Создать аккаунт'],
+  'forgot-password': ['Восстановление пароля', 'Укажите почту, которую подтвердили при регистрации.', 'Запросить ссылку'],
+  'resend-confirmation': ['Подтверждение почты', 'Укажите почту, с которой зарегистрировались.', 'Запросить ссылку'],
+  'confirm-email': ['Подтверждение почты', 'Подтвердите адрес, чтобы войти в аккаунт.', 'Подтвердить почту'],
+  'reset-password': ['Новый пароль', 'После смены пароля потребуется войти заново.', 'Сохранить пароль']
+};
+
+function authMode(mode) {
+  activeAuthMode = mode;
+  const register = mode === 'register';
+  const reset = mode === 'reset-password';
+  const confirm = mode === 'confirm-email';
+  const password = $('#auth-form [name=password]');
+  const email = $('#auth-form [name=email]');
+  const [title, hint, action] = authCopy[mode];
+  $('#register-name').hidden = !register;
+  $('#register-name input').disabled = !register;
+  $('#register-name input').required = register;
+  $('#auth-email').hidden = reset || confirm;
+  email.disabled = reset || confirm;
+  email.required = !email.disabled;
+  password.disabled = !(mode === 'login' || register || reset);
+  password.required = !password.disabled;
+  $('#auth-password').hidden = password.disabled;
+  password.value = '';
+  password.autocomplete = register || reset ? 'new-password' : 'current-password';
+  password.minLength = register || reset ? 8 : 1;
+  $('#password-hint').hidden = !(register || reset);
+  $('#auth-title').textContent = title;
+  $('#auth-hint').textContent = hint;
+  $('#auth-submit').textContent = action;
+  $('#auth-submit').hidden = (reset || confirm) && !accountLink;
+  $('[data-auth-mode=login]').classList.toggle('selected', mode === 'login');
+  $('[data-auth-mode=register]').classList.toggle('selected', register);
+  $('#auth-error').textContent = $('#auth-submit').hidden ? 'Запросите новую ссылку и откройте её из письма.' : '';
+  $('#auth-status').textContent = '';
+}
+
+$('#auth-screen').addEventListener('click', event => {
+  const mode = event.target.closest('[data-auth-mode]')?.dataset.authMode;
+  if (!mode) return;
+  if (accountLink || ['confirm-email', 'reset-password'].includes(location.hash.slice(1))) {
+    accountLink = null;
+    history.replaceState(null, '', '#login');
+  }
+  if (profile && mode === 'login') { location.hash = '#profile'; return; }
+  authMode(mode);
+});
+
+$('#guest-login').addEventListener('click', () => {
+  const route = location.hash.slice(1).split('?')[0];
+  if (!route || route === 'catalog' || route === 'item') loginReturnHash = location.hash || '#catalog';
+});
+
+$('#auth-form').addEventListener('submit', async event => {
+  event.preventDefault();
+  const mode = activeAuthMode;
+  const generation = routeCounter;
+  const button = $('#auth-submit');
+  if (button.disabled || button.hidden) return;
+  button.disabled = true;
+  $('#auth-error').textContent = '';
+  $('#auth-status').textContent = '';
+  const data = Object.fromEntries(new FormData(event.target));
+  const body = ['reset-password', 'confirm-email'].includes(mode) ? { ...data, ...accountLink } : data;
+  try {
+    const result = await api('/api/auth/' + mode, { method:'POST', body:JSON.stringify(body) });
+    if (mode === 'reset-password' && profile?.id === body.userId) {
+      profile = null;
+      updateStoreHeader();
+    }
+    if (mode === 'login') {
+      if (generation !== routeCounter || mode !== activeAuthMode) {
+        profile = await api('/api/profile');
+        updateStoreHeader();
+        return;
+      }
+      event.target.reset();
+      await openCabinet();
+      return;
+    }
+    if (generation !== routeCounter || mode !== activeAuthMode) return;
+    if (mode === 'register') {
+      authMode('login');
+      $('#auth-status').textContent = result.confirmationSent
+        ? 'Аккаунт создан. Откройте ссылку из письма, затем войдите.'
+        : 'Аккаунт создан, но письмо не удалось отправить. Запросите ссылку повторно.';
+    } else if (mode === 'confirm-email' || mode === 'reset-password') {
+      accountLink = null;
+      history.replaceState(null, '', '#login');
+      authMode('login');
+      $('#auth-status').textContent = mode === 'confirm-email' ? 'Почта подтверждена. Теперь можно войти.' : 'Пароль сохранён. Войдите с новым паролем.';
+    } else {
+      $('#auth-status').textContent = result.message;
+    }
+  } catch (error) {
+    if (generation === routeCounter && mode === activeAuthMode) $('#auth-error').textContent = error.message;
+  } finally {
+    button.disabled = false;
+  }
+});
 $('#logout').addEventListener('click', async () => { $('#logout').disabled = true; try { await api('/api/auth/logout', {method:'POST'}); profile = null; updateStoreHeader(); location.hash = '#catalog'; await render(); } catch(error) { notify(error.message); } finally { $('#logout').disabled = false; } });
 $('#close-dialog').addEventListener('click', () => $('#detail-dialog').close());
 async function openCabinet() { profile = await api('/api/profile'); updateStoreHeader(); const target = loginReturnHash || '#profile'; loginReturnHash = null; if (location.hash !== target) location.hash = target; else await render(); }
@@ -36,9 +145,24 @@ const pageHeader = (title, description, action = '') => `<div class="page-header
 function empty(title, description) { return `<div class="panel empty"><div class="empty-icon" aria-hidden="true">◇</div><h2>${title}</h2><p class="muted">${description}</p></div>`; }
 function pagination(data, route) { if (data.totalPages < 2 && data.page === 1) return ''; return `<div class="pager"><button data-page="${data.page - 1}" data-route="${route}" ${data.page <= 1 ? 'disabled' : ''}>Назад</button><span>Страница ${data.page} из ${Math.max(1,data.totalPages)}</span><button data-page="${data.page + 1}" data-route="${route}" ${data.page >= data.totalPages ? 'disabled' : ''}>Далее</button></div>`; }
 async function render() {
-  const activeRoute = location.hash.slice(1).split('?')[0];
+  const [activeRoute, authQuery] = location.hash.slice(1).split('?');
+  if (activeRoute === 'confirm-email' || activeRoute === 'reset-password') {
+    if (authQuery !== undefined) {
+      const params = new URLSearchParams(authQuery);
+      const userId = params.get('userId');
+      const token = params.get('token');
+      accountLink = userId && token ? { userId, token } : null;
+      history.replaceState(null, '', '#' + activeRoute);
+    } else if (activeRoute !== activeAuthMode) {
+      accountLink = null;
+    }
+    showAuth();
+    authMode(activeRoute);
+    return;
+  }
+  accountLink = null;
   if (!activeRoute || activeRoute === 'catalog' || activeRoute === 'item') return renderStorefront();
-  if (!profile) { if (activeRoute !== 'login') loginReturnHash = location.hash; showAuth(); return; }
+  if (!profile) { if (activeRoute !== 'login') loginReturnHash = location.hash; authMode('login'); showAuth(); return; }
   if (activeRoute === 'login') { location.hash = '#profile'; return; }
   $('#storefront').hidden = true; $('#auth-screen').hidden = true; $('#cabinet').hidden = false; updateStoreHeader();
   const token = ++routeCounter;

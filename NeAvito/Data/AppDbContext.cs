@@ -4,6 +4,7 @@ using NeAvito.Models;
 namespace NeAvito.Data;
 public sealed class AppDbContext(DbContextOptions<AppDbContext> options) : IdentityDbContext<AppUser>(options)
 {
+    internal DbSet<AccountSession> AccountSessions => Set<AccountSession>();
     public DbSet<Order> Orders => Set<Order>();
     public DbSet<OrderItem> OrderItems => Set<OrderItem>();
     public DbSet<CheckoutBatch> CheckoutBatches => Set<CheckoutBatch>();
@@ -18,6 +19,12 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options) : Ident
         builder.Entity<AppUser>().Property(x => x.DeliveryAddress).HasMaxLength(500);
         builder.Entity<AppUser>().Property(x => x.DisplayName).HasMaxLength(100);
         builder.Entity<AppUser>().HasIndex(x => x.NormalizedEmail).IsUnique();
+        builder.Entity<AccountSession>(entity =>
+        {
+            entity.ToTable("AccountSessions");
+            entity.HasOne<AppUser>().WithMany().HasForeignKey(x => x.UserId);
+            entity.HasIndex(x => x.ExpiresAtUtc);
+        });
         builder.Entity<CheckoutBatch>(entity =>
         {
             entity.Property(x => x.Fingerprint).HasMaxLength(64).IsRequired();

@@ -26,6 +26,7 @@ public sealed class CartTests
         { BaseAddress = new Uri("https://localhost"), AllowAutoRedirect = false, HandleCookies = true });
         Assert.Equal(HttpStatusCode.Created, (await client.PostAsJsonAsync("/api/auth/register", new
         { email = name + "@example.com", password = "TestPassword123!", displayName = name })).StatusCode);
+        await TestAccountEmail.Confirm(app, client, name + "@example.com");
         await Login(client, name);
         return client;
     }

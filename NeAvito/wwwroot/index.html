@@ -11,8 +11,27 @@
   <main id="storefront" class="storefront" tabindex="-1" hidden></main>
   <main id="auth-screen" class="auth-layout" hidden>
     <section class="welcome"><span class="eyebrow">ВАШЕ МЕСТО НА NEAVITO</span><h1>Покупайте.<br>Продавайте.<br>Будьте на связи.</h1><p>Заказы, ваши товары и данные профиля — в одном личном кабинете.</p><div class="welcome-note"><span>01 /</span> Один аккаунт для покупок и продаж</div></section>
-    <section class="auth-card"><div class="switch" aria-label="Вход или регистрация"><button id="login-tab" class="selected" type="button">Вход</button><button id="register-tab" type="button">Регистрация</button></div><h2 id="auth-title">Рады видеть вас снова</h2><p id="auth-hint" class="muted">Войдите, чтобы открыть личный кабинет.</p>
-    <form id="auth-form"><label id="register-name" hidden>Ваше имя<input name="displayName" autocomplete="name" maxlength="100"></label><label>Электронная почта<input name="email" type="email" autocomplete="username" maxlength="256" required></label><label>Пароль<input name="password" type="password" autocomplete="current-password" maxlength="128" required></label><p id="password-hint" class="muted small" hidden>Не менее 8 символов: строчные и прописные латинские буквы, цифра и специальный символ.</p><p id="auth-error" class="error" role="alert"></p><button class="primary wide" id="auth-submit">Войти</button></form></section>
+    <section class="auth-card">
+      <div class="switch" aria-label="Вход или регистрация">
+        <button class="selected" data-auth-mode="login" type="button">Вход</button>
+        <button data-auth-mode="register" type="button">Регистрация</button>
+      </div>
+      <h2 id="auth-title">Вход</h2>
+      <p id="auth-hint" class="muted">Войдите, чтобы открыть личный кабинет.</p>
+      <form id="auth-form">
+        <label id="register-name" hidden>Ваше имя<input name="displayName" autocomplete="name" maxlength="100" disabled></label>
+        <label id="auth-email">Электронная почта<input name="email" type="email" autocomplete="username" maxlength="256" required></label>
+        <label id="auth-password">Пароль<input name="password" type="password" autocomplete="current-password" maxlength="128" required></label>
+        <p id="password-hint" class="muted small" hidden>Не менее 8 символов, включая строчную и прописную буквы, цифру и специальный символ.</p>
+        <p id="auth-error" class="error" role="alert"></p>
+        <p id="auth-status" role="status"></p>
+        <button class="primary wide" id="auth-submit">Войти</button>
+      </form>
+      <div class="form-actions">
+        <button class="quiet" type="button" data-auth-mode="forgot-password">Забыли пароль?</button>
+        <button class="quiet" type="button" data-auth-mode="resend-confirmation">Отправить письмо подтверждения</button>
+      </div>
+    </section>
   </main>
   <div id="cabinet" class="cabinet" hidden><aside><div class="sidebar-title">Личный кабинет</div><nav aria-label="Разделы кабинета"><a href="#profile">Мой профиль</a><div class="nav-label">ПОКУПАТЕЛЮ</div><a href="#purchases">Мои покупки</a><div class="nav-label">ПРОДАВЦУ</div><a href="#products">Мои товары</a><a href="#sales">Полученные заказы</a></nav><div class="sidebar-footer">Один аккаунт.<br>Две возможности.</div></aside><main id="content" tabindex="-1"></main></div>
   <dialog id="detail-dialog"><div class="dialog-top"><h2 id="dialog-title">Заказ</h2><button id="close-dialog" class="quiet" aria-label="Закрыть окно">Закрыть</button></div><div id="dialog-content"></div></dialog>

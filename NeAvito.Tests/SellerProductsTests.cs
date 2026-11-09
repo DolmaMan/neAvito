@@ -16,6 +16,7 @@ public sealed class SellerProductsTests
         var email = name + "@example.com";
         Assert.Equal(HttpStatusCode.Created, (await client.PostAsJsonAsync("/api/auth/register",
             new { email, password = "TestPassword123!", displayName = name })).StatusCode);
+        await TestAccountEmail.Confirm(app, client, email);
         Assert.Equal(HttpStatusCode.OK, (await client.PostAsJsonAsync("/api/auth/login",
             new { email, password = "TestPassword123!" })).StatusCode);
         return client;

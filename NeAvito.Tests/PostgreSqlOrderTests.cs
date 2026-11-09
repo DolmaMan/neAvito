@@ -9,6 +9,8 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using NeAvito.Data;
+using NeAvito.Services;
+using Microsoft.AspNetCore.DataProtection;
 using Npgsql;
 
 namespace NeAvito.Tests;
@@ -92,9 +94,11 @@ internal sealed class PostgreSqlFactory : WebApplicationFactory<Program>
         var connection = new NpgsqlConnectionStringBuilder(baseConnection) { SearchPath = schema }.ConnectionString;
         builder.UseEnvironment("Testing");
         builder.ConfigureAppConfiguration((_, config) => config.AddInMemoryCollection(
-            new Dictionary<string, string?> { ["ConnectionStrings:Postgres"] = connection }));
+            TestAccountEmail.Settings().Append(new("ConnectionStrings:Postgres", connection))));
         builder.ConfigureServices(services =>
         {
+            services.AddDataProtection().UseEphemeralDataProtectionProvider();
+            services.AddSingleton<IAccountEmail, TestAccountEmail>();
             services.RemoveAll<AppDbContext>(); services.RemoveAll<DbContextOptions<AppDbContext>>();
             services.RemoveAll<IDbContextOptionsConfiguration<AppDbContext>>();
             services.AddDbContext<AppDbContext>(options => options.UseNpgsql(connection));
