@@ -41,7 +41,13 @@ async function renderStorefront() {
       lastCatalogHash = catalogHash(params);
       const [categories,cities] = await Promise.all([api('/api/listings/categories'),api('/api/listings/cities')]);
       if (token !== routeCounter) return;
-      root.innerHTML = `<section class="catalog-intro"><div><span class="eyebrow">NEAVITO / КАТАЛОГ</span><h1>Хорошие вещи.<br>Новая история.</h1><p>Найдите то, что нужно вам — от одежды до электроники.</p></div><div class="catalog-intro-note"><span class="intro-symbol" aria-hidden="true">↗</span><p>Выбирайте.<br>Связывайтесь с автором.<br>Договаривайтесь о встрече.</p></div></section>${filtersHtml(params,categories,cities)}<section id="catalog-results" aria-live="polite"><p class="loading">Ищем объявления…</p></section>`;
+      const categoryLinks = categories.map(category => {
+        const next = new URLSearchParams(params);
+        next.set('categoryId', category.id);
+        next.delete('page');
+        return `<a href="${escapeHtml(catalogHash(next))}" ${params.get('categoryId') === String(category.id) ? 'aria-current="page"' : ''}>${escapeHtml(category.name)}</a>`;
+      }).join('');
+      root.innerHTML = `<nav class="category-nav" aria-label="Категории объявлений"><a href="#catalog" ${!params.get('categoryId') ? 'aria-current="page"' : ''}>Все вещи</a>${categoryLinks}</nav><section class="catalog-intro"><div><span class="eyebrow">ВЕЩИ С ПРОДОЛЖЕНИЕМ</span><h1>Найдите своё.<br><em>Снова и снова.</em></h1></div><div class="catalog-intro-note"><p>От любимого силуэта до детали для дома. Хорошие вещи находят новых владельцев.</p><a href="#listing">Дайте своей вещи новую историю ↗</a></div></section>${filtersHtml(params,categories,cities)}<section id="catalog-results" aria-live="polite"><p class="loading">Ищем объявления…</p></section>`;
       document.title = 'Каталог — NeAvito';
       $('#catalog-filters').addEventListener('submit', event => {
         event.preventDefault(); const data = new FormData(event.target);
@@ -54,7 +60,7 @@ async function renderStorefront() {
       try {
         const data = await api('/api/listings?' + apiParams);
         if (token !== routeCounter) return;
-        $('#catalog-results').innerHTML = `<div class="catalog-result-heading"><h2>Объявления</h2><span class="muted">Найдено: ${data.totalCount}</span></div>` + (data.items.length ? `<div class="catalog-grid">${data.items.map(storeCard).join('')}</div>` : empty(data.totalCount ? 'На этой странице нет объявлений' : 'Объявления не найдены', 'Попробуйте изменить запрос или сбросить фильтры.') + '<a class="page-link" href="#catalog">Все объявления</a>') + catalogPager(data,params);
+        $('#catalog-results').innerHTML = `<div class="catalog-result-heading"><h2>Вещи, которые ищут нового владельца</h2><span class="muted">Найдено: ${data.totalCount}</span></div>` + (data.items.length ? `<div class="catalog-grid">${data.items.map(storeCard).join('')}</div>` : empty(data.totalCount ? 'На этой странице нет объявлений' : 'Объявления не найдены', 'Попробуйте изменить запрос или сбросить фильтры.') + '<a class="page-link" href="#catalog">Все объявления</a>') + catalogPager(data,params);
       } catch(error) { if (token === routeCounter) { $('#catalog-results').innerHTML = '<div class="panel"><p id="catalog-error" class="error" role="alert"></p><button data-store-retry>Повторить</button></div>'; $('#catalog-error').textContent = error.message; } }
     }
   } catch(error) {
@@ -64,7 +70,7 @@ async function renderStorefront() {
   }
 }
 function detailHtml(p) {
-  return `<a class="back store-back" href="${escapeHtml(lastCatalogHash)}">← Назад в каталог</a><div class="product-detail"><section class="product-gallery" aria-label="Фотографии объявления">${p.images.length?`<img id="main-photo" class="main-photo" src="${escapeHtml(p.images[0].url)}" alt="${escapeHtml(p.title)}"><div class="photo-thumbs">${p.images.map((i,n)=>`<button class="photo-thumb" data-photo="${escapeHtml(i.url)}" aria-label="Фото ${n+1}" aria-pressed="${n===0}"><img src="${escapeHtml(i.url)}" alt=""></button>`).join('')}</div>`:'Нет фото'}</section><section class="product-summary"><span class="eyebrow">${escapeHtml(p.category?.name)}</span><h1>${escapeHtml(p.title)}</h1><p class="detail-price">${listingPrice(p.price)}</p><p>${escapeHtml(p.city?.name)} · ${p.condition==='New'?'Новое':'Б/у'}</p><div class="seller-panel"><h2>${escapeHtml(p.seller?.displayName)}</h2><p class="muted small">Опубликовано ${date(p.publishedAtUtc)}</p></div><button id="reveal-contact" class="primary">${profile?'Показать телефон':'Войти и показать телефон'}</button><p id="listing-contact" role="status"></p><p class="muted small">Договоритесь с автором о передаче вещи. Оплата и доставка через сайт не предусмотрены.</p></section><section class="panel product-description"><h2>Описание</h2><p>${escapeHtml(p.description)}</p></section></div>`;
+  return `<a class="back store-back" href="${escapeHtml(lastCatalogHash)}">← Назад в каталог</a><div class="product-detail"><section class="product-gallery" aria-label="Фотографии объявления">${p.images.length?`<img id="main-photo" class="main-photo" src="${escapeHtml(p.images[0].url)}" alt="${escapeHtml(p.title)}"><div class="photo-thumbs">${p.images.map((i,n)=>`<button class="photo-thumb" data-photo="${escapeHtml(i.url)}" aria-label="Фото ${n+1}" aria-pressed="${n===0}"><img src="${escapeHtml(i.url)}" alt=""></button>`).join('')}</div>`:'Нет фото'}</section><section class="product-summary"><span class="eyebrow">${escapeHtml(p.category?.name)}</span><h1>${escapeHtml(p.title)}</h1><p class="detail-price">${listingPrice(p.price)}</p><p>${escapeHtml(p.city?.name)} · ${p.condition==='New'?'Новое':'Б/у'}</p><div class="seller-panel"><h2>${escapeHtml(p.seller?.displayName)}</h2><p class="muted small">Опубликовано ${date(p.publishedAtUtc)}</p></div><button id="reveal-contact" class="primary">${profile?'Показать телефон':'Войти и показать телефон'}</button><p id="listing-contact" role="status"></p><p class="muted small">Договоритесь с автором о передаче вещи. Оплата и доставка через сайт не предусмотрены.</p></section><div class="detail-tools"><button type="button" data-report>Пожаловаться на объявление</button></div><section class="panel product-description"><h2>Описание</h2><p>${escapeHtml(p.description)}</p></section></div>`;
 }
 document.addEventListener('click', async event => {
   const button=event.target.closest('button'); if(!button || button.disabled)return;

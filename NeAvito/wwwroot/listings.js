@@ -2,14 +2,6 @@
 let editedListing = null;
 const listingLabels = {Draft:'Черновик',Published:'Опубликовано',Unpublished:'Снято',Sold:'Продано',Archived:'В архиве'};
 const listingState = value => `<span class="badge">${listingLabels[value] || escapeHtml(value)}</span>`;
-document.addEventListener('click', event => {
-  const link=event.target.closest('#content a[href^="#listings"]');
-  if(link && productDirty && location.hash.startsWith('#listing?')) {
-    if(!confirm('Выйти без сохранения изменений?')) event.preventDefault();
-    else productDirty=false;
-  }
-});
-
 async function renderListings() {
   const generation=++routeCounter;
   $('#storefront').hidden=true; $('#auth-screen').hidden=true; $('#cabinet').hidden=false; updateStoreHeader();
@@ -67,43 +59,103 @@ function listingEditor(p,categories,cities) {
     (p?`<section class="panel"><h2>Фотографии</h2><p class="muted small">До 10 JPEG, PNG или WebP, до 5 МБ; для публикации нужно хотя бы одно фото.</p><div id="listing-images" class="images">${p.images.map(i=>`<div class="image-tile"><img src="${escapeHtml(i.url)}" alt="Фото объявления"><button type="button" data-listing-image="${i.id}" ${locked?'disabled':''}>Удалить</button></div>`).join('')}</div><label>Добавить фото<input id="listing-photo" type="file" accept="image/jpeg,image/png,image/webp" ${locked||p.images.length>=10?'disabled':''}></label></section>
     <section class="panel"><h2>Публикация</h2>${listingState(p.status)}${p.moderationHidden?'<p class="error">Скрыто модератором</p>':''}${p.publicationErrors.length?'<ul>'+p.publicationErrors.map(x=>'<li>'+escapeHtml(x)+'</li>').join('')+'</ul>':''}<div id="listing-actions" class="form-actions">${actions.map(a=>`<button type="button" data-listing-command="${a}">${actionLabels[a]}</button>`).join('')}</div><p class="muted small">${locked?'Проданное можно вернуть в снятые. Архив доступен только для просмотра.':'Изменения сначала сохраните, затем меняйте публикацию или фотографии.'}</p></section>`:'');
 }
+
+let listingBusy = false;
+
+async function mutateListing(action, onSuccess) {
+  if (listingBusy) return;
+  const generation = routeCounter;
+  const controls = [...document.querySelectorAll('#content input, #content textarea, #content select, #content button')];
+  const states = controls.map(control => control.disabled);
+  const errorBox = $('#listing-error');
+  if (errorBox) errorBox.textContent = '';
+  listingBusy = true;
+  controls.forEach(control => { control.disabled = true; });
+  $('#content').setAttribute('aria-busy', 'true');
+  try {
+    const result = await action();
+    if (generation === routeCounter) await onSuccess(result);
+  } catch (error) {
+    if (generation !== routeCounter) return;
+    if (errorBox?.isConnected) errorBox.textContent = error.message;
+    notify(error.message);
+  } finally {
+    listingBusy = false;
+    controls.forEach((control, index) => { if (control.isConnected) control.disabled = states[index]; });
+    $('#content').removeAttribute('aria-busy');
+  }
+}
+
 async function saveListing(event) {
   event.preventDefault();
-  const form=event.currentTarget, button=form.querySelector('button[type=submit]'), errorBox=$('#listing-error');
-  if(button.disabled)return; button.disabled=true; errorBox.textContent='';
-  const fields=Object.fromEntries(new FormData(form));
-  const payload={title:fields.title,description:fields.description,price:fields.price===''?null:Number(fields.price),categoryId:fields.categoryId?Number(fields.categoryId):null,cityId:fields.cityId?Number(fields.cityId):null,condition:fields.condition||null,phone:fields.phone,contactConsent:form.elements.contactConsent.checked,...(editedListing?{version:editedListing.version}:{})};
-  try {
-    const before=editedListing?.status;
-    const saved=await api('/api/me/listings'+(editedListing?'/'+editedListing.id:''),{method:editedListing?'PUT':'POST',body:JSON.stringify(payload)});
-    productDirty=false;
-    notify(before==='Published'&&saved.status==='Unpublished'?'Изменения сохранены. Объявление снято: проверьте условия публикации.':'Объявление сохранено.');
-    const hash='#listing?id='+saved.id;
-    if(location.hash===hash)await render();else location.hash=hash;
-  } catch(error) { if(errorBox.isConnected)errorBox.textContent=error.message; }
-  finally {button.disabled=false;}
+  const form = event.currentTarget;
+  const fields = Object.fromEntries(new FormData(form));
+  const current = editedListing;
+  const payload = {
+    title: fields.title, description: fields.description,
+    price: fields.price === '' ? null : Number(fields.price),
+    categoryId: fields.categoryId ? Number(fields.categoryId) : null,
+    cityId: fields.cityId ? Number(fields.cityId) : null,
+    condition: fields.condition || null, phone: fields.phone,
+    contactConsent: form.elements.contactConsent.checked,
+    ...(current ? {version: current.version} : {})
+  };
+  await mutateListing(
+    () => api('/api/me/listings' + (current ? '/' + current.id : ''), {
+      method: current ? 'PUT' : 'POST', body: JSON.stringify(payload)
+    }),
+    async saved => {
+      productDirty = false;
+      notify(current?.status === 'Published' && saved.status === 'Unpublished'
+        ? 'Изменения сохранены. Объявление снято: проверьте условия публикации.' : 'Объявление сохранено.');
+      const hash = '#listing?id=' + saved.id;
+      if (location.hash === hash) await render(); else location.hash = hash;
+    }
+  );
 }
+
 async function listingCommand(event) {
-  const button=event.target.closest('[data-listing-command]'); if(!button||button.disabled)return;
-  if(productDirty){notify('Сначала сохраните изменения.');return;}
-  const command=button.dataset.listingCommand;
-  if(['archive','sold'].includes(command)&&!confirm(command==='sold'?'Отметить вещь проданной?':'Переместить объявление в архив? Редактирование станет недоступно.'))return;
-  button.disabled=true;
-  try {await api(`/api/me/listings/${editedListing.id}/${command}`,{method:'POST',body:JSON.stringify({version:editedListing.version})});await render();}
-  catch(error){notify(error.message);}finally{button.disabled=false;}
+  const button = event.target.closest('[data-listing-command]');
+  if (!button || button.disabled || listingBusy) return;
+  if (productDirty) { notify('Сначала сохраните изменения.'); return; }
+  const command = button.dataset.listingCommand;
+  if (['archive', 'sold'].includes(command) && !confirm(command === 'sold'
+    ? 'Отметить вещь проданной?' : 'Переместить объявление в архив? Редактирование станет недоступно.')) return;
+  await mutateListing(
+    () => api('/api/me/listings/' + editedListing.id + '/' + command, {
+      method: 'POST', body: JSON.stringify({version: editedListing.version})
+    }),
+    async () => { notify('Статус объявления обновлён.'); await render(); }
+  );
 }
+
 async function uploadListingPhoto(event) {
-  const input=event.currentTarget,file=input.files[0];if(!file)return;
-  if(productDirty){notify('Сначала сохраните изменения.');input.value='';return;}
-  input.disabled=true;
-  try {const form=new FormData();form.append('file',file);form.append('version',editedListing.version);await api(`/api/me/listings/${editedListing.id}/images`,{method:'POST',body:form});await render();}
-  catch(error){notify(error.message);input.value='';}finally{input.disabled=false;}
+  const input = event.currentTarget;
+  const file = input.files[0];
+  if (!file || listingBusy) return;
+  if (productDirty) { notify('Сначала сохраните изменения.'); input.value = ''; return; }
+  if (file.size > 5 * 1024 * 1024) { notify('Размер фотографии не должен превышать 5 МБ.'); input.value = ''; return; }
+  if (!['image/jpeg', 'image/png', 'image/webp'].includes(file.type)) {
+    notify('Выберите фотографию JPEG, PNG или WebP.'); input.value = ''; return;
+  }
+  const form = new FormData();
+  form.append('file', file);
+  form.append('version', editedListing.version);
+  await mutateListing(
+    () => api('/api/me/listings/' + editedListing.id + '/images', {method: 'POST', body: form}),
+    async () => { notify('Фотография добавлена.'); await render(); }
+  );
+  input.value = '';
 }
+
 async function deleteListingPhoto(event) {
-  const button=event.target.closest('[data-listing-image]');if(!button||button.disabled)return;
-  if(productDirty){notify('Сначала сохраните изменения.');return;}
-  if(!confirm('Удалить фото? Если оно последнее, объявление будет снято с публикации.'))return;
-  button.disabled=true;
-  try {await api(`/api/me/listings/${editedListing.id}/images/${button.dataset.listingImage}?version=${editedListing.version}`,{method:'DELETE'});await render();}
-  catch(error){notify(error.message);}finally{button.disabled=false;}
+  const button = event.target.closest('[data-listing-image]');
+  if (!button || button.disabled || listingBusy) return;
+  if (productDirty) { notify('Сначала сохраните изменения.'); return; }
+  if (!confirm('Удалить фото? Если оно последнее, объявление будет снято с публикации.')) return;
+  await mutateListing(
+    () => api('/api/me/listings/' + editedListing.id + '/images/' + button.dataset.listingImage
+      + '?version=' + encodeURIComponent(editedListing.version), {method: 'DELETE'}),
+    async () => { notify('Фотография удалена.'); await render(); }
+  );
 }

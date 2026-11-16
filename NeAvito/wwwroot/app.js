@@ -167,6 +167,7 @@ async function render() {
   if (!activeRoute || activeRoute === 'catalog' || activeRoute === 'item') return renderStorefront();
   if (!profile) { if (activeRoute !== 'login') loginReturnHash = location.hash; authMode('login'); showAuth(); return; }
   if (activeRoute === 'login') { location.hash = '#profile'; return; }
+  if (activeRoute === 'moderation') return renderModerationPreview();
   if (activeRoute === 'listings' || activeRoute === 'listing') return renderListings();
   $('#storefront').hidden = true; $('#auth-screen').hidden = true; $('#cabinet').hidden = false; updateStoreHeader();
   const token = ++routeCounter;
@@ -200,7 +201,12 @@ document.addEventListener('click', async event => {
   try {if(d.action==='reload')await render();if(d.page)location.hash=`#${d.route}?page=${d.page}`;if(d.order)await openOrder(d.order,d.sales==='true');}
   catch(error){notify(error.message);}finally{button.disabled=false;}
 });
-document.querySelectorAll('nav a, .brand, .store-nav a, #userbar a').forEach(link => link.addEventListener('click', event => { if (productDirty && link.hash !== location.hash) { if (!confirm('Выйти без сохранения изменений?')) event.preventDefault(); else productDirty = false; } }));
+document.addEventListener('click', event => {
+  const link = event.target.closest('a[href^="#"]');
+  if (!link || link.classList.contains('skip-link') || link.hash === location.hash || !productDirty) return;
+  if (!confirm('Выйти без сохранения изменений?')) event.preventDefault();
+  else productDirty = false;
+});
 window.addEventListener('hashchange', () => { $('#detail-dialog').close(); render(); });
 window.addEventListener('beforeunload', event => { if (productDirty) { event.preventDefault(); event.returnValue = ''; } });
 // Startup is handled after catalog.js has loaded.
