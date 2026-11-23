@@ -1,5 +1,5 @@
 // Frontend regression checks with intercepted API responses. No database or running server required.
-// Run from repository root with Playwright installed and Chrome available.
+// Run from repository root with Playwright and Edge (or PLAYWRIGHT_CHANNEL=chrome).
 const { chromium } = require('playwright');
 const fs=require('fs'), path=require('path'), assert=require('assert/strict');
 const root=path.resolve('NeAvito/wwwroot');
@@ -7,7 +7,7 @@ const out=path.resolve('NeAvito/obj/interface-check');
 fs.mkdirSync(out,{recursive:true});
 (async()=>{
 const origin='http://neavito.test';
-const browser=await chromium.launch({channel:'chrome',headless:true});
+const browser=await chromium.launch({channel:process.env.PLAYWRIGHT_CHANNEL||'msedge',headless:true});
 const page=await browser.newPage();const errors=[];page.on('pageerror',e=>errors.push(e.message));
 const id='11111111-1111-1111-1111-111111111111';
 let loggedIn=false;let writes=[];let saveMode='ok', releaseSave;let catalogMode='ok';
@@ -47,19 +47,20 @@ assert(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)
 await page.screenshot({path:path.join(out,'catalog-'+width+'.png'),fullPage:true});
 await page.locator('.shop-card h2 a').first().click();await page.locator('#reveal-contact').waitFor();
 assert(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),'detail overflow '+width);
-await page.getByRole('button',{name:'Пожаловаться на объявление'}).click();assert(await page.getByRole('button',{name:'Отправка пока недоступна'}).isDisabled());await page.locator('#close-dialog').click();
-await page.goto(origin+'/#login');await page.locator('#auth-form').waitFor();
+await page.getByRole('button',{name:'Пожаловаться на объявление'}).click();await page.locator('#auth-form').waitFor();assert.equal(new URL(page.url()).hash,'#login');
+await page.goto(origin+'/?auth-check#login');await page.locator('#auth-form').waitFor();
 assert(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),'auth overflow '+width);
 await page.screenshot({path:path.join(out,'auth-'+width+'.png'),fullPage:true});
 }
 await page.locator('[name=email]').fill('test@example.com');await page.locator('#auth-form [name=password]').fill('Password123!');await page.locator('#auth-submit').click();await page.locator('#profile-form').waitFor();
 for(const width of [390,768,1440]){
 await page.setViewportSize({width,height:1000});
-for(const route of ['profile','listings','listing','moderation']){
+for(const route of ['profile','listings','listing']){
 await page.goto(origin+'/#'+route);await page.locator('#content h1').waitFor();
 assert(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),route+' overflow '+width);
 await page.screenshot({path:path.join(out,route+'-'+width+'.png'),fullPage:true});
 }}
+await page.goto(origin+'/#moderation');await page.getByRole('heading',{name:'Нет доступа'}).waitFor();assert.equal(await page.locator('a[href="#moderation"]').isVisible(),false);
 // Regression: a new unsaved draft must prompt on the in-content back link.
 await page.goto(origin+'/#listing');await page.locator('#listing-form').waitFor();
 await page.locator('[name=title]').fill('Несохранённый черновик');
@@ -93,7 +94,7 @@ catalogMode='empty';await page.goto(origin);await page.getByRole('heading',{name
 catalogMode='offline';await page.goto(origin);await page.locator('#catalog-error').waitFor();
 catalogMode='ok';await page.getByRole('button',{name:'Повторить',exact:true}).click();await page.locator('.shop-card').first().waitFor();
 assert(!writes.some(p=>p.includes('moderation')||p.includes('reports')));assert.deepEqual(errors,[]);
-console.log('PASS: draft guard, stale save, duplicate protection, conflict recovery, upload validation, empty/offline retry; 390/768/1440 catalogue, detail, auth, profile, listings, editor, moderation; login; report stub; no page errors.');
+console.log('PASS: draft guard, stale save, duplicate protection, conflict recovery, upload validation, empty/offline retry; 390/768/1440 catalogue, detail, auth, profile, listings, editor; login; guest report redirect and moderation access denied; no page errors.');
 }finally{await browser.close();}
 })().catch(e=>{console.error(e);process.exitCode=1});
 

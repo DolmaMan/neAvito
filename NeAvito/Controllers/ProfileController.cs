@@ -10,8 +10,9 @@ namespace NeAvito.Controllers;
 [Route("api/profile")]
 public sealed class ProfileController(UserManager<AppUser> users) : ControllerBase
 {
-    private static object View(AppUser user) => new
-    { user.Id, user.Email, user.DisplayName, Phone = user.PhoneNumber ?? "", user.DeliveryAddress, Version = user.ConcurrencyStamp };
+    private object View(AppUser user) => new
+    { user.Id, user.Email, user.DisplayName, Phone = user.PhoneNumber ?? "", user.DeliveryAddress, Version = user.ConcurrencyStamp,
+        CanModerate = User.IsInRole(ModerationRoles.Moderator) };
 
     [HttpGet]
     public async Task<IActionResult> Get()

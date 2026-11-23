@@ -2,6 +2,7 @@
 let loginReturnHash = null;
 let lastCatalogHash = '#catalog';
 function updateStoreHeader() {
+  document.querySelectorAll('a[href="#moderation"]').forEach(link => link.hidden = !profile?.canModerate);
   $('#userbar').hidden = !profile; $('#guest-login').hidden = !!profile; $('#cart-count').hidden = true;
   if (profile) $('#user-name').textContent = profile.displayName;
 }

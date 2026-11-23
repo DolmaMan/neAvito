@@ -15,10 +15,39 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options) : Ident
     public DbSet<Listing> Listings => Set<Listing>();
     public DbSet<ListingImage> ListingImages => Set<ListingImage>();
     public DbSet<City> Cities => Set<City>();
+    public DbSet<ListingReport> ListingReports => Set<ListingReport>();
+    public DbSet<ModerationAudit> ModerationAudits => Set<ModerationAudit>();
 
     protected override void OnModelCreating(ModelBuilder builder)
     {
         base.OnModelCreating(builder);
+        builder.Entity<ListingReport>(entity =>
+        {
+            entity.Property(x => x.Reason).HasConversion<string>().HasMaxLength(40);
+            entity.Property(x => x.Status).HasConversion<string>().HasMaxLength(20);
+            entity.Property(x => x.Decision).HasConversion<string>().HasMaxLength(40);
+            entity.Property(x => x.Comment).HasMaxLength(2000);
+            entity.Property(x => x.DecisionReason).HasMaxLength(1000);
+            entity.Property(x => x.Version).IsConcurrencyToken();
+            entity.HasOne(x => x.Listing).WithMany().HasForeignKey(x => x.ListingId).OnDelete(DeleteBehavior.Restrict);
+            entity.HasOne<AppUser>().WithMany().HasForeignKey(x => x.ReporterId).OnDelete(DeleteBehavior.Restrict);
+            entity.HasOne<AppUser>().WithMany().HasForeignKey(x => x.ModeratorId).OnDelete(DeleteBehavior.Restrict);
+            entity.HasIndex(x => new { x.ListingId, x.ReporterId }).IsUnique().HasFilter("\"Status\" = 'Pending'");
+            entity.HasIndex(x => new { x.Status, x.CreatedAtUtc, x.Id });
+        });
+        builder.Entity<ModerationAudit>(entity =>
+        {
+            entity.Property(x => x.Action).HasConversion<string>().HasMaxLength(40);
+            entity.Property(x => x.Reason).HasMaxLength(1000);
+            entity.HasOne<ListingReport>().WithMany().HasForeignKey(x => x.ReportId).OnDelete(DeleteBehavior.Restrict);
+            entity.HasOne<Listing>().WithMany().HasForeignKey(x => x.ListingId).OnDelete(DeleteBehavior.Restrict);
+            entity.HasOne<AppUser>().WithMany().HasForeignKey(x => x.AuthorId).OnDelete(DeleteBehavior.Restrict);
+            entity.HasOne<AppUser>().WithMany().HasForeignKey(x => x.ModeratorId).OnDelete(DeleteBehavior.Restrict);
+            entity.HasIndex(x => new { x.ListingId, x.CreatedAtUtc, x.Id });
+            entity.HasIndex(x => new { x.AuthorId, x.CreatedAtUtc, x.Id });
+        });
+        builder.Entity<AppUser>().Property(x => x.BlockReason).HasMaxLength(1000);
+        builder.Entity<AppUser>().Property(x => x.BlockedById).HasMaxLength(450);
         builder.Entity<City>(entity =>
         {
             entity.Property(x => x.Name).HasMaxLength(100).IsRequired();
@@ -32,6 +61,7 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options) : Ident
             entity.Property(x => x.Title).HasMaxLength(200).IsRequired();
             entity.Property(x => x.Description).HasMaxLength(10000).IsRequired();
             entity.Property(x => x.TransitionNote).HasMaxLength(500);
+            entity.Property(x => x.ModerationReason).HasMaxLength(1000);
             entity.Property(x => x.Status).HasConversion<string>().HasMaxLength(20);
             entity.Property(x => x.Condition).HasConversion<string>().HasMaxLength(20);
             entity.Property(x => x.Version).IsConcurrencyToken();

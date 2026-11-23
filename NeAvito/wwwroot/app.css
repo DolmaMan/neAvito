@@ -224,3 +224,5 @@ fieldset + p { margin-top: 20px; }
   #notice { left: 20px; right: 20px; bottom: 20px; }
 }
 @media (prefers-reduced-motion:reduce) { *, *::before, *::after { transition: none !important; scroll-behavior: auto !important; } }
+
+.moderation-text{white-space:pre-wrap;overflow-wrap:anywhere}.moderation-image{width:120px;height:120px;object-fit:cover}#moderation-detail,.moderation-reports,.order-card small{overflow-wrap:anywhere}

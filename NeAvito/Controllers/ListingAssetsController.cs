@@ -1,4 +1,5 @@
 using System.Security.Claims;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using NeAvito.Data;
@@ -21,6 +22,15 @@ public sealed class ListingAssetsController(AppDbContext db, ProductImageStorage
         var visible = await db.ListingImages.AnyAsync(x => x.Id == id && (x.Listing.AuthorId == userId ||
             x.Listing.Status == ListingStatus.Published && !x.Listing.ModerationHidden &&
             db.Users.Any(u => u.Id == x.Listing.AuthorId && !u.IsBlocked && u.EmailConfirmed)), ct);
+        var path = storage.PathFor(id);
+        if (!visible || !System.IO.File.Exists(path)) return NotFound();
+        Response.Headers.CacheControl = "no-store";
+        return PhysicalFile(path, "image/webp");
+    }
+    [Authorize(Roles = ModerationRoles.Moderator), HttpGet("api/moderation/images/{id:guid}")]
+    public async Task<IActionResult> ModerationImage(Guid id, CancellationToken ct)
+    {
+        var visible = await db.ListingImages.AnyAsync(x => x.Id == id && db.ListingReports.Any(r => r.ListingId == x.ListingId), ct);
         var path = storage.PathFor(id);
         if (!visible || !System.IO.File.Exists(path)) return NotFound();
         Response.Headers.CacheControl = "no-store";

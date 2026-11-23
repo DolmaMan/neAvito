@@ -24,6 +24,9 @@ builder.Services.AddOptions<AccountEmailOptions>().BindConfiguration("AccountEma
 builder.Services.AddTransient<IAccountEmail, AccountEmail>();
 builder.Services.AddRateLimiter(options =>
 {
+    options.AddPolicy("reports-account", context => RateLimitPartition.GetFixedWindowLimiter(
+        context.User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value ?? "anonymous",
+        _ => new FixedWindowRateLimiterOptions { PermitLimit = 10, Window = TimeSpan.FromMinutes(15) }));
     options.GlobalLimiter = PartitionedRateLimiter.Create<HttpContext, string>(context =>
         context.Request.Path.StartsWithSegments("/api/listings") && context.Request.Path.Value!.EndsWith("/contact", StringComparison.OrdinalIgnoreCase)
             ? RateLimitPartition.GetFixedWindowLimiter(context.Connection.RemoteIpAddress?.ToString() ?? "unknown",
@@ -70,6 +73,30 @@ builder.Services.ConfigureApplicationCookie(options =>
     options.EventsType = typeof(AccountCookieEvents);
 });
 var app = builder.Build();
+if (args.Length > 0 && args[0] is "--grant-moderator" or "--revoke-moderator")
+{
+    if (args.Length != 2) throw new InvalidOperationException("Укажите email существующего подтверждённого аккаунта.");
+    using var scope = app.Services.CreateScope();
+    var users = scope.ServiceProvider.GetRequiredService<UserManager<AppUser>>();
+    var roles = scope.ServiceProvider.GetRequiredService<RoleManager<IdentityRole>>();
+    var user = await users.FindByEmailAsync(args[1]);
+    if (user is not { EmailConfirmed: true, IsBlocked: false })
+        throw new InvalidOperationException("Нужен существующий подтверждённый и незаблокированный аккаунт.");
+    if (!await roles.RoleExistsAsync(ModerationRoles.Moderator))
+    {
+        var created = await roles.CreateAsync(new IdentityRole(ModerationRoles.Moderator));
+        if (!created.Succeeded) throw new InvalidOperationException("Не удалось создать роль модератора.");
+    }
+    var grant = args[0] == "--grant-moderator";
+    if (await users.IsInRoleAsync(user, ModerationRoles.Moderator) != grant)
+    {
+        var result = grant ? await users.AddToRoleAsync(user, ModerationRoles.Moderator) : await users.RemoveFromRoleAsync(user, ModerationRoles.Moderator);
+        if (!result.Succeeded) throw new InvalidOperationException("Не удалось изменить роль.");
+        if (!(await users.UpdateSecurityStampAsync(user)).Succeeded) throw new InvalidOperationException("Не удалось завершить старые сеансы.");
+    }
+    Console.WriteLine(grant ? "Роль модератора назначена. Войдите в аккаунт заново." : "Роль модератора отозвана.");
+    return;
+}
 app.UseExceptionHandler();
 if (app.Environment.IsDevelopment()) app.MapOpenApi();
 app.UseHttpsRedirection();

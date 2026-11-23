@@ -20,7 +20,7 @@ async function api(path, options = {}) {
     if (response.status === 401 && profile && path !== '/api/auth/login') {
       profile = null;
       const section = location.hash.slice(1).split('?')[0];
-      if (['item', 'profile', 'purchases', 'products', 'sales', 'product', 'listings', 'listing'].includes(section)) loginReturnHash = location.hash;
+      if (['item', 'profile', 'purchases', 'products', 'sales', 'product', 'listings', 'listing', 'moderation'].includes(section)) loginReturnHash = location.hash;
       history.replaceState(null, '', '#login');
       authMode('login');
       showAuth();
@@ -32,6 +32,7 @@ async function api(path, options = {}) {
     identityErrors.ConcurrencyFailure = 'Данные аккаунта изменились. Обновите страницу и повторите действие.';
     let message = data?.message;
     if (!message && data?.errors) message = Array.isArray(data.errors) ? data.errors.map(x => identityErrors[x.code] || x.description).join('\n') : 'Проверьте заполнение полей формы.';
+    if (response.status === 403 && path.startsWith('/api/moderation')) { if (profile) profile.canModerate = false; updateStoreHeader(); message = 'Нет доступа к модерации. Обновите страницу или войдите в аккаунт с нужной ролью.'; }
     throw new Error(message || (response.status === 404 ? 'Запись не найдена или недоступна.' : 'Не удалось выполнить действие. Повторите попытку.'));
   }
   return data;
@@ -167,7 +168,7 @@ async function render() {
   if (!activeRoute || activeRoute === 'catalog' || activeRoute === 'item') return renderStorefront();
   if (!profile) { if (activeRoute !== 'login') loginReturnHash = location.hash; authMode('login'); showAuth(); return; }
   if (activeRoute === 'login') { location.hash = '#profile'; return; }
-  if (activeRoute === 'moderation') return renderModerationPreview();
+  if (activeRoute === 'moderation') return renderModeration();
   if (activeRoute === 'listings' || activeRoute === 'listing') return renderListings();
   $('#storefront').hidden = true; $('#auth-screen').hidden = true; $('#cabinet').hidden = false; updateStoreHeader();
   const token = ++routeCounter;

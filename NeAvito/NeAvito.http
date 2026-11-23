@@ -148,3 +148,46 @@ Content-Type: application/json
   "deliveryAddress": "Удобное место получения",
   "version": "ЗАМЕНИТЕ_ВЕРСИЕЙ_ПРОФИЛЯ"
 }
+
+### P3: жалоба от вошедшего пользователя на чужое публичное объявление
+POST {{NeAvito_HostAddress}}/api/listings/{{ListingId}}/reports
+X-NeAvito-Request: 1
+Content-Type: application/json
+
+{ "reason": "InaccurateDescription", "comment": "Описание не соответствует фотографии" }
+
+### Причины: InaccurateDescription, ProhibitedItem, SuspectedFraud, Other (комментарий обязателен)
+### Далее войдите аккаунтом с ролью Moderator; /api/profile возвращает canModerate
+@ReportId = 00000000-0000-0000-0000-000000000000
+@ReportVersion = 00000000-0000-0000-0000-000000000000
+@AuthorVersion = ЗАМЕНИТЕ_ВЕРСИЕЙ_АВТОРА
+
+### Очередь: status можно опустить или заменить на Resolved
+GET {{NeAvito_HostAddress}}/api/moderation/reports?status=Pending&page=1&pageSize=20
+
+### Детали: скопируйте актуальные версии жалобы, объявления и автора
+GET {{NeAvito_HostAddress}}/api/moderation/reports/{{ReportId}}
+
+### Решение: Reject, HideListing или BlockAuthor; причина обязательна
+POST {{NeAvito_HostAddress}}/api/moderation/reports/{{ReportId}}/decision
+X-NeAvito-Request: 1
+Content-Type: application/json
+
+{
+  "action": "HideListing", "reason": "Нарушение правил размещения",
+  "version": "{{ReportVersion}}", "listingVersion": "{{ListingVersion}}",
+  "authorVersion": "{{AuthorVersion}}"
+}
+
+### История решений
+GET {{NeAvito_HostAddress}}/api/moderation/reports/{{ReportId}}/audit?page=1&pageSize=20
+
+### Снятие ограничения: RestoreListing или UnblockAuthor; сначала обновите версии из деталей
+POST {{NeAvito_HostAddress}}/api/moderation/reports/{{ReportId}}/release
+X-NeAvito-Request: 1
+Content-Type: application/json
+
+{
+  "action": "RestoreListing", "reason": "Нарушение устранено",
+  "listingVersion": "{{ListingVersion}}", "authorVersion": "{{AuthorVersion}}"
+}

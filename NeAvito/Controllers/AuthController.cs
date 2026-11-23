@@ -137,7 +137,7 @@ public sealed class AuthController(UserManager<AppUser> users, SignInManager<App
     public async Task<IActionResult> Me()
     {
         var user = await users.GetUserAsync(User);
-        return user is null ? Unauthorized() : Ok(new { user.Id, user.Email, user.DisplayName });
+        return user is null ? Unauthorized() : Ok(new { user.Id, user.Email, user.DisplayName, CanModerate = User.IsInRole(ModerationRoles.Moderator) });
     }
 
     private async Task<bool> SendConfirmation(AppUser user, CancellationToken cancellation)
