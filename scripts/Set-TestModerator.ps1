@@ -15,5 +15,10 @@ $taskPrevious = $env:ConnectionStrings__Postgres
 try {
     $env:ConnectionStrings__Postgres = $taskConnection.get_ConnectionString()
     dotnet run --project NeAvito --no-build --launch-profile https -- --grant-moderator $Email
-    if ($LASTEXITCODE -ne 0) { throw 'Test moderator setup failed.' }
-} finally { $env:ConnectionStrings__Postgres = $taskPrevious }
+    if ($LASTEXITCODE -ne 0) {
+        throw 'Test moderator setup failed.'
+    }
+}
+finally {
+    $env:ConnectionStrings__Postgres = $taskPrevious
+}

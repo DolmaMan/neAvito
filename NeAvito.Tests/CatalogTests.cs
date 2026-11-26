@@ -17,16 +17,76 @@ public sealed class CatalogTests
         var client = app.Client();
         using var scope = app.Services.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-        var seller = new AppUser { Id = "seller", UserName = "seller@example.com", Email = "seller@example.com", DisplayName = "Seller" };
+        var seller = new AppUser
+        {
+            Id = "seller",
+            UserName = "seller@example.com",
+            Email = "seller@example.com",
+            DisplayName = "Seller",
+        };
         var date = new DateTime(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc);
         db.Users.Add(seller);
         db.Products.AddRange(
-            new Product { Id = AvailableId, Name = "Phone Alpha", Description = "Description", PriceMinor = 100050, Stock = 2, CategoryId = 3, Seller = seller, Status = ProductStatus.Published, CreatedAtUtc = date,
-                Images = [new ProductImage { Url = "/images/second.jpg", Position = 1 }, new ProductImage { Url = "/images/first.jpg", Position = 0 }] },
-            new Product { Id = SoldOutId, Name = "Phone Beta", PriceMinor = 200000, Stock = 0, CategoryId = 3, Seller = seller, Status = ProductStatus.Published, CreatedAtUtc = date.AddDays(1) },
-            new Product { Id = HiddenId, Name = "Hidden Phone", PriceMinor = 10000, Stock = 10, CategoryId = 3, Seller = seller, Status = ProductStatus.Draft, CreatedAtUtc = date.AddDays(2) },
-            new Product { Name = "Unpublished Phone", PriceMinor = 10000, Stock = 10, CategoryId = 3, Seller = seller, Status = ProductStatus.Unpublished, CreatedAtUtc = date.AddDays(3) },
-            new Product { Name = "Jacket", PriceMinor = 300000, Stock = 1, CategoryId = 1, Seller = seller, Status = ProductStatus.Published, CreatedAtUtc = date.AddDays(4) });
+            new Product
+            {
+                Id = AvailableId,
+                Name = "Phone Alpha",
+                Description = "Description",
+                PriceMinor = 100050,
+                Stock = 2,
+                CategoryId = 3,
+                Seller = seller,
+                Status = ProductStatus.Published,
+                CreatedAtUtc = date,
+                Images =
+                [
+                    new ProductImage { Url = "/images/second.jpg", Position = 1 },
+                    new ProductImage { Url = "/images/first.jpg", Position = 0 },
+                ],
+            },
+            new Product
+            {
+                Id = SoldOutId,
+                Name = "Phone Beta",
+                PriceMinor = 200000,
+                Stock = 0,
+                CategoryId = 3,
+                Seller = seller,
+                Status = ProductStatus.Published,
+                CreatedAtUtc = date.AddDays(1),
+            },
+            new Product
+            {
+                Id = HiddenId,
+                Name = "Hidden Phone",
+                PriceMinor = 10000,
+                Stock = 10,
+                CategoryId = 3,
+                Seller = seller,
+                Status = ProductStatus.Draft,
+                CreatedAtUtc = date.AddDays(2),
+            },
+            new Product
+            {
+                Name = "Unpublished Phone",
+                PriceMinor = 10000,
+                Stock = 10,
+                CategoryId = 3,
+                Seller = seller,
+                Status = ProductStatus.Unpublished,
+                CreatedAtUtc = date.AddDays(3),
+            },
+            new Product
+            {
+                Name = "Jacket",
+                PriceMinor = 300000,
+                Stock = 1,
+                CategoryId = 1,
+                Seller = seller,
+                Status = ProductStatus.Published,
+                CreatedAtUtc = date.AddDays(4),
+            }
+        );
         db.SaveChanges();
         return client;
     }
@@ -46,7 +106,9 @@ public sealed class CatalogTests
         Assert.Equal(AvailableId, item.GetProperty("id").GetGuid());
         Assert.Equal(1000.50m, item.GetProperty("price").GetDecimal());
         Assert.Equal("/images/first.jpg", item.GetProperty("imageUrl").GetString());
-        using var next = JsonDocument.Parse(await client.GetStringAsync("/api/catalog/products?pageSize=1&page=2&sort=price_asc"));
+        using var next = JsonDocument.Parse(
+            await client.GetStringAsync("/api/catalog/products?pageSize=1&page=2&sort=price_asc")
+        );
         Assert.Equal(SoldOutId, next.RootElement.GetProperty("items")[0].GetProperty("id").GetGuid());
         Assert.False(next.RootElement.GetProperty("items")[0].GetProperty("isAvailable").GetBoolean());
     }
@@ -56,11 +118,16 @@ public sealed class CatalogTests
     {
         using var app = new AuthFactory();
         using var client = Seed(app);
-        using var json = JsonDocument.Parse(await client.GetStringAsync(
-            "/api/catalog/products?search=PHONE&categoryId=3&minPrice=1000.50&maxPrice=1000.50"));
+        using var json = JsonDocument.Parse(
+            await client.GetStringAsync(
+                "/api/catalog/products?search=PHONE&categoryId=3&minPrice=1000.50&maxPrice=1000.50"
+            )
+        );
         Assert.Equal(1, json.RootElement.GetProperty("totalCount").GetInt32());
         Assert.Equal(AvailableId, json.RootElement.GetProperty("items")[0].GetProperty("id").GetGuid());
-        using var wildcard = JsonDocument.Parse(await client.GetStringAsync("/api/catalog/products?search=%25"));
+        using var wildcard = JsonDocument.Parse(
+            await client.GetStringAsync("/api/catalog/products?search=%25")
+        );
         Assert.Equal(0, wildcard.RootElement.GetProperty("totalCount").GetInt32());
     }
 
@@ -69,13 +136,22 @@ public sealed class CatalogTests
     {
         using var app = new AuthFactory();
         using var client = Seed(app);
-        Assert.Equal(HttpStatusCode.NotFound, (await client.GetAsync($"/api/catalog/products/{HiddenId}")).StatusCode);
-        Assert.Equal(HttpStatusCode.NotFound, (await client.GetAsync($"/api/catalog/products/{Guid.NewGuid()}")).StatusCode);
+        Assert.Equal(
+            HttpStatusCode.NotFound,
+            (await client.GetAsync($"/api/catalog/products/{HiddenId}")).StatusCode
+        );
+        Assert.Equal(
+            HttpStatusCode.NotFound,
+            (await client.GetAsync($"/api/catalog/products/{Guid.NewGuid()}")).StatusCode
+        );
         var text = await client.GetStringAsync($"/api/catalog/products/{AvailableId}");
         Assert.DoesNotContain("seller@example.com", text);
         using var json = JsonDocument.Parse(text);
         Assert.Equal("Description", json.RootElement.GetProperty("description").GetString());
-        Assert.Equal("/images/first.jpg", json.RootElement.GetProperty("images")[0].GetProperty("url").GetString());
+        Assert.Equal(
+            "/images/first.jpg",
+            json.RootElement.GetProperty("images")[0].GetProperty("url").GetString()
+        );
     }
 
     [Theory]
@@ -88,7 +164,10 @@ public sealed class CatalogTests
     {
         using var app = new AuthFactory();
         using var client = app.Client();
-        Assert.Equal(HttpStatusCode.BadRequest, (await client.GetAsync("/api/catalog/products?" + query)).StatusCode);
+        Assert.Equal(
+            HttpStatusCode.BadRequest,
+            (await client.GetAsync("/api/catalog/products?" + query)).StatusCode
+        );
     }
 
     [Theory]
@@ -99,7 +178,9 @@ public sealed class CatalogTests
     {
         using var app = new AuthFactory();
         using var client = Seed(app);
-        using var json = JsonDocument.Parse(await client.GetStringAsync("/api/catalog/products?sort=" + sort));
+        using var json = JsonDocument.Parse(
+            await client.GetStringAsync("/api/catalog/products?sort=" + sort)
+        );
         Assert.Equal(firstName, json.RootElement.GetProperty("items")[0].GetProperty("name").GetString());
     }
 

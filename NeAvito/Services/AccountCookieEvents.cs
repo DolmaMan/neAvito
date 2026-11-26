@@ -7,7 +7,8 @@ using NeAvito.Models;
 
 namespace NeAvito.Services;
 
-internal sealed class AccountCookieEvents(AppDbContext db, SignInManager<AppUser> signIn) : CookieAuthenticationEvents
+internal sealed class AccountCookieEvents(AppDbContext db, SignInManager<AppUser> signIn)
+    : CookieAuthenticationEvents
 {
     private const string SessionProperty = "neavito-session";
     private Guid? validatedSession;
@@ -17,14 +18,17 @@ internal sealed class AccountCookieEvents(AppDbContext db, SignInManager<AppUser
         var cancellation = context.HttpContext.RequestAborted;
         var now = context.Options.TimeProvider!.GetUtcNow();
         await using var transaction = await db.Database.BeginTransactionAsync(cancellation);
-        await db.AccountSessions.Where(session => session.ExpiresAtUtc <= now.UtcDateTime
-            || session.Id == validatedSession).ExecuteDeleteAsync(cancellation);
+        await db
+            .AccountSessions.Where(session =>
+                session.ExpiresAtUtc <= now.UtcDateTime || session.Id == validatedSession
+            )
+            .ExecuteDeleteAsync(cancellation);
 
         var session = new AccountSession
         {
             Id = Guid.NewGuid(),
             UserId = signIn.UserManager.GetUserId(context.Principal!)!,
-            ExpiresAtUtc = context.Properties.ExpiresUtc!.Value.UtcDateTime
+            ExpiresAtUtc = context.Properties.ExpiresUtc!.Value.UtcDateTime,
         };
         db.AccountSessions.Add(session);
         await db.SaveChangesAsync(cancellation);
@@ -36,11 +40,17 @@ internal sealed class AccountCookieEvents(AppDbContext db, SignInManager<AppUser
     {
         var userId = context.Principal is null ? null : signIn.UserManager.GetUserId(context.Principal);
         var now = context.Options.TimeProvider!.GetUtcNow().UtcDateTime;
-        if (userId is not null && context.Properties.Items.TryGetValue(SessionProperty, out var value)
+        if (
+            userId is not null
+            && context.Properties.Items.TryGetValue(SessionProperty, out var value)
             && Guid.TryParseExact(value, "N", out var sessionId)
-            && await db.AccountSessions.AnyAsync(session => session.Id == sessionId && session.UserId == userId
-                && session.ExpiresAtUtc > now, context.HttpContext.RequestAborted)
-            && await signIn.ValidateSecurityStampAsync(context.Principal) is { EmailConfirmed: true, IsBlocked: false } user)
+            && await db.AccountSessions.AnyAsync(
+                session => session.Id == sessionId && session.UserId == userId && session.ExpiresAtUtc > now,
+                context.HttpContext.RequestAborted
+            )
+            && await signIn.ValidateSecurityStampAsync(context.Principal)
+                is { EmailConfirmed: true, IsBlocked: false } user
+        )
         {
             validatedSession = sessionId;
             context.ReplacePrincipal(await signIn.CreateUserPrincipalAsync(user));
@@ -54,7 +64,8 @@ internal sealed class AccountCookieEvents(AppDbContext db, SignInManager<AppUser
     public override async Task SigningOut(CookieSigningOutContext context)
     {
         if (validatedSession is Guid sessionId)
-            await db.AccountSessions.Where(session => session.Id == sessionId)
+            await db
+                .AccountSessions.Where(session => session.Id == sessionId)
                 .ExecuteDeleteAsync(context.HttpContext.RequestAborted);
     }
 

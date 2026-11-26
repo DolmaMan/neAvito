@@ -5,7 +5,9 @@ $taskRoot = Split-Path $PSScriptRoot -Parent
 Set-Location $taskRoot
 function Run([string]$Program, [string[]]$Arguments) {
     & $Program @Arguments
-    if ($LASTEXITCODE -ne 0) { throw "$Program failed ($LASTEXITCODE). See output above." }
+    if ($LASTEXITCODE -ne 0) {
+        throw "$Program failed ($LASTEXITCODE). See output above."
+    }
 }
 $taskDirectory = Join-Path $taskRoot 'NeAvito/App_Data/demo'
 $taskConfigPath = Join-Path $taskDirectory 'demo.settings.json'
@@ -17,13 +19,17 @@ if ($Action -eq 'Start') {
     }
     $taskConfig = Get-Content -LiteralPath $taskConfigPath -Raw | ConvertFrom-Json
     foreach ($taskField in @('From', 'Host', 'UserName', 'Password')) {
-        if ([string]::IsNullOrWhiteSpace($taskConfig.AccountEmail.$taskField)) { throw "Fill AccountEmail.$taskField in demo.settings.json." }
+        if ([string]::IsNullOrWhiteSpace($taskConfig.AccountEmail.$taskField)) {
+            throw "Fill AccountEmail.$taskField in demo.settings.json."
+        }
     }
     if ([Uri]::CheckHostName($taskConfig.AccountEmail.Host) -eq [UriHostNameType]::Unknown) {
         throw 'AccountEmail.Host must be a hostname only, for example smtp.gmail.com, without https:// or a port.'
     }
     foreach ($taskField in @('ModeratorEmail', 'ModeratorPassword', 'ModeratorDisplayName')) {
-        if ([string]::IsNullOrWhiteSpace($taskConfig.Demo.$taskField)) { throw "Fill Demo.$taskField in demo.settings.json." }
+        if ([string]::IsNullOrWhiteSpace($taskConfig.Demo.$taskField)) {
+            throw "Fill Demo.$taskField in demo.settings.json."
+        }
     }
     if ($taskConfig.AccountEmail.PublicOrigin -ne 'https://localhost:7353' -or
         $taskConfig.AccountEmail.EnableSsl -ne $true -or $taskConfig.AccountEmail.PickupDirectory -or
@@ -32,7 +38,9 @@ if ($Action -eq 'Start') {
     }
 }
 foreach ($taskCommand in @('docker', 'dotnet')) {
-    if (-not (Get-Command $taskCommand -ErrorAction SilentlyContinue)) { throw "Install $taskCommand first." }
+    if (-not (Get-Command $taskCommand -ErrorAction SilentlyContinue)) {
+        throw "Install $taskCommand first."
+    }
 }
 $taskDockerReady = & docker info --format '{{.OSType}}' 2>$null
 if ($LASTEXITCODE -ne 0 -and $IsWindows -and $Action -eq 'Start') {
@@ -42,25 +50,39 @@ if ($LASTEXITCODE -ne 0 -and $IsWindows -and $Action -eq 'Start') {
         for ($taskWait = 0; $taskWait -lt 60; $taskWait++) {
             Start-Sleep -Seconds 2
             $taskDockerReady = & docker info --format '{{.OSType}}' 2>$null
-            if ($LASTEXITCODE -eq 0) { break }
+            if ($LASTEXITCODE -eq 0) {
+                break
+            }
         }
     }
 }
-if ($LASTEXITCODE -ne 0 -or $taskDockerReady -ne 'linux') { throw 'Start Docker Desktop with Linux containers, then retry.' }
+if ($LASTEXITCODE -ne 0 -or $taskDockerReady -ne 'linux') {
+    throw 'Start Docker Desktop with Linux containers, then retry.'
+}
 $taskDirectory = Join-Path $taskRoot 'NeAvito/App_Data/demo'
 $taskEnv = Join-Path $taskDirectory 'demo.env'
 $taskCompose = @('compose', '--env-file', $taskEnv, '-f', 'compose.demo.yaml')
 if ($Action -ne 'Start') {
-    if (-not (Test-Path -LiteralPath $taskEnv)) { throw 'Start the demo first.' }
-    if ($Action -eq 'Stop') { Run docker ($taskCompose + @('stop')) }
-    else { Run docker ($taskCompose + @('ps')) }
+    if (-not (Test-Path -LiteralPath $taskEnv)) {
+        throw 'Start the demo first.'
+    }
+    if ($Action -eq 'Stop') {
+        Run docker ($taskCompose + @('stop'))
+    }
+    else {
+        Run docker ($taskCompose + @('ps'))
+    }
     exit
 }
 New-Item -ItemType Directory -Path (Join-Path $taskDirectory 'https') -Force | Out-Null
 if (-not (Test-Path -LiteralPath $taskEnv)) {
     $taskExistingVolume = & docker volume ls --filter 'label=com.docker.compose.project=neavito-demo' --format '{{.Name}}'
-    if ($LASTEXITCODE -ne 0) { throw 'Cannot inspect demo volumes.' }
-    if ($taskExistingVolume) { throw 'Demo volumes exist but demo.env is missing. Restore demo.env; credentials will not be replaced.' }
+    if ($LASTEXITCODE -ne 0) {
+        throw 'Cannot inspect demo volumes.'
+    }
+    if ($taskExistingVolume) {
+        throw 'Demo volumes exist but demo.env is missing. Restore demo.env; credentials will not be replaced.'
+    }
     $taskDbPassword = [Convert]::ToHexString([Security.Cryptography.RandomNumberGenerator]::GetBytes(24))
     $taskCertPassword = [Convert]::ToHexString([Security.Cryptography.RandomNumberGenerator]::GetBytes(24))
     $taskAccountPassword = 'Demo!' + [Convert]::ToHexString([Security.Cryptography.RandomNumberGenerator]::GetBytes(12)) + 'a1'
@@ -68,16 +90,24 @@ if (-not (Test-Path -LiteralPath $taskEnv)) {
 }
 $taskSettings = @{}
 foreach ($taskLine in Get-Content -LiteralPath $taskEnv) {
-    if ($taskLine -match '^(DEMO_[A-Z_]+)=(.+)$') { $taskSettings[$Matches[1]] = $Matches[2] }
+    if ($taskLine -match '^(DEMO_[A-Z_]+)=(.+)$') {
+        $taskSettings[$Matches[1]] = $Matches[2]
+    }
 }
 foreach ($taskKey in @('DEMO_DB_PASSWORD', 'DEMO_CERT_PASSWORD', 'DEMO_ACCOUNT_PASSWORD')) {
-    if (-not $taskSettings[$taskKey]) { throw "Missing $taskKey in demo.env." }
-    if (Test-Path "Env:$taskKey") { throw "Remove environment override $taskKey so Compose uses saved demo credentials." }
+    if (-not $taskSettings[$taskKey]) {
+        throw "Missing $taskKey in demo.env."
+    }
+    if (Test-Path "Env:$taskKey") {
+        throw "Remove environment override $taskKey so Compose uses saved demo credentials."
+    }
 }
 Run dotnet @('dev-certs', 'https', '--trust')
 Run dotnet @('dev-certs', 'https', '--export-path', (Join-Path $taskDirectory 'https/demo.pfx'), '--password', $taskSettings.DEMO_CERT_PASSWORD)
 Run docker ($taskCompose + @('up', '-d', '--wait', '--wait-timeout', '120', 'postgres'))
-if (-not $NoBuild) { Run docker ($taskCompose + @('build', 'app')) }
+if (-not $NoBuild) {
+    Run docker ($taskCompose + @('build', 'app'))
+}
 # Stop only this demo application before applying migrations; other projects are untouched.
 Run docker ($taskCompose + @('stop', 'app'))
 Run docker ($taskCompose + @('run', '--rm', '--no-deps', 'app', '--setup-demo'))
@@ -86,10 +116,17 @@ $taskReady = $false
 for ($taskAttempt = 0; $taskAttempt -lt 60; $taskAttempt++) {
     try {
         $taskResponse = Invoke-WebRequest 'https://localhost:7353/api/listings' -SkipCertificateCheck -TimeoutSec 3
-        if ($taskResponse.StatusCode -eq 200) { $taskReady = $true; break }
-    } catch { Start-Sleep -Seconds 1 }
+        if ($taskResponse.StatusCode -eq 200) {
+            $taskReady = $true; break
+        }
+    }
+    catch {
+        Start-Sleep -Seconds 1
+    }
 }
-if (-not $taskReady) { throw 'Demo did not start. Inspect docker compose logs using the saved env file.' }
+if (-not $taskReady) {
+    throw 'Demo did not start. Inspect docker compose logs using the saved env file.'
+}
 @"
 NeAvito local demo
 Website: https://localhost:7353

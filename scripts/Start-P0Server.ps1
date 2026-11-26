@@ -3,7 +3,9 @@ param([Parameter(Mandatory)][string]$ReportPath)
 $ErrorActionPreference = 'Stop'
 Set-Location (Split-Path $PSScriptRoot -Parent)
 $report = Get-Content -LiteralPath $ReportPath -Raw | ConvertFrom-Json
-if ($report.freshDatabase -notmatch '^neavito_p0_fresh_[0-9a-f]{32}$') { throw 'Not a P0 temporary database.' }
+if ($report.freshDatabase -notmatch '^neavito_p0_fresh_[0-9a-f]{32}$') {
+    throw 'Not a P0 temporary database.'
+}
 $secretId = ([xml](Get-Content NeAvito/NeAvito.csproj)).Project.PropertyGroup.UserSecretsId
 $secrets = Get-Content (Join-Path $env:APPDATA "Microsoft/UserSecrets/$secretId/secrets.json") -Raw | ConvertFrom-Json
 $connection = [System.Data.Common.DbConnectionStringBuilder]::new()

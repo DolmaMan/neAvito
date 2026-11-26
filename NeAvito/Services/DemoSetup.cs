@@ -8,17 +8,28 @@ namespace NeAvito.Services;
 
 public static class DemoSetup
 {
-    public static async Task RunAsync(IServiceProvider services, IHostEnvironment environment, IConfiguration config)
+    public static async Task RunAsync(
+        IServiceProvider services,
+        IHostEnvironment environment,
+        IConfiguration config
+    )
     {
         using var scope = services.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-        if (!environment.IsDevelopment() || !config.GetValue<bool>("Demo:Enabled") ||
-            db.Database.GetDbConnection().Database != "neavito_demo")
-            throw new InvalidOperationException("Demo setup requires Development, Demo:Enabled and database neavito_demo.");
+        if (
+            !environment.IsDevelopment()
+            || !config.GetValue<bool>("Demo:Enabled")
+            || db.Database.GetDbConnection().Database != "neavito_demo"
+        )
+            throw new InvalidOperationException(
+                "Demo setup requires Development, Demo:Enabled and database neavito_demo."
+            );
         Validate(config);
         await db.Database.MigrateAsync();
         await SeedAccountsAsync(scope.ServiceProvider, config);
-        Console.WriteLine("Demo database ready. Confirm the moderator email before signing in. Existing passwords preserved.");
+        Console.WriteLine(
+            "Demo database ready. Confirm the moderator email before signing in. Existing passwords preserved."
+        );
     }
 
     public static void Validate(IConfiguration config)
@@ -26,10 +37,16 @@ public static class DemoSetup
         if (string.IsNullOrWhiteSpace(config["Demo:Password"]))
             throw new InvalidOperationException("Demo:Password is required.");
         var email = config["Demo:ModeratorEmail"]?.Trim();
-        if (!MailAddress.TryCreate(email, out var address) || address.Address != email ||
-            address.Host.Equals("demo.test", StringComparison.OrdinalIgnoreCase))
+        if (
+            !MailAddress.TryCreate(email, out var address)
+            || address.Address != email
+            || address.Host.Equals("demo.test", StringComparison.OrdinalIgnoreCase)
+        )
             throw new InvalidOperationException("Configure a real Demo:ModeratorEmail address.");
-        if (string.IsNullOrWhiteSpace(config["Demo:ModeratorPassword"]) || string.IsNullOrWhiteSpace(config["Demo:ModeratorDisplayName"]))
+        if (
+            string.IsNullOrWhiteSpace(config["Demo:ModeratorPassword"])
+            || string.IsNullOrWhiteSpace(config["Demo:ModeratorDisplayName"])
+        )
             throw new InvalidOperationException("Configure Demo:ModeratorPassword and ModeratorDisplayName.");
     }
 
@@ -47,19 +64,40 @@ public static class DemoSetup
             Check(await users.RemoveFromRoleAsync(legacy, ModerationRoles.Moderator));
             Check(await users.UpdateSecurityStampAsync(legacy));
         }
-        foreach (var (email, name) in new[] { ("seller@demo.test", "Продавец"), ("buyer@demo.test", "Покупатель") })
+        foreach (
+            var (email, name) in new[] { ("seller@demo.test", "Продавец"), ("buyer@demo.test", "Покупатель") }
+        )
         {
             if (await users.FindByEmailAsync(email) is null)
-                Check(await users.CreateAsync(new AppUser { UserName = email, Email = email, DisplayName = name, EmailConfirmed = true }, config["Demo:Password"]!));
+                Check(
+                    await users.CreateAsync(
+                        new AppUser
+                        {
+                            UserName = email,
+                            Email = email,
+                            DisplayName = name,
+                            EmailConfirmed = true,
+                        },
+                        config["Demo:Password"]!
+                    )
+                );
         }
         var moderatorEmail = config["Demo:ModeratorEmail"]!.Trim();
         var moderator = await users.FindByEmailAsync(moderatorEmail);
         if (moderator is null)
         {
-            moderator = new AppUser { UserName = moderatorEmail, Email = moderatorEmail, DisplayName = config["Demo:ModeratorDisplayName"]!.Trim() };
+            moderator = new AppUser
+            {
+                UserName = moderatorEmail,
+                Email = moderatorEmail,
+                DisplayName = config["Demo:ModeratorDisplayName"]!.Trim(),
+            };
             Check(await users.CreateAsync(moderator, config["Demo:ModeratorPassword"]!));
         }
-        if (moderator.IsBlocked) throw new InvalidOperationException("Configured moderator is blocked; resolve the block before setup.");
+        if (moderator.IsBlocked)
+            throw new InvalidOperationException(
+                "Configured moderator is blocked; resolve the block before setup."
+            );
         if (!await users.IsInRoleAsync(moderator, ModerationRoles.Moderator))
         {
             Check(await users.AddToRoleAsync(moderator, ModerationRoles.Moderator));
@@ -69,13 +107,26 @@ public static class DemoSetup
         if (!moderator.EmailConfirmed)
         {
             var token = await users.GenerateEmailConfirmationTokenAsync(moderator);
-            if (!await services.GetRequiredService<IAccountEmail>().SendLinkAsync(moderatorEmail, "confirm-email", moderator.Id, token, CancellationToken.None))
-                throw new InvalidOperationException("Moderator confirmation delivery failed. Check SMTP settings and rerun setup.");
+            if (
+                !await services
+                    .GetRequiredService<IAccountEmail>()
+                    .SendLinkAsync(
+                        moderatorEmail,
+                        "confirm-email",
+                        moderator.Id,
+                        token,
+                        CancellationToken.None
+                    )
+            )
+                throw new InvalidOperationException(
+                    "Moderator confirmation delivery failed. Check SMTP settings and rerun setup."
+                );
         }
     }
 
     private static void Check(IdentityResult result)
     {
-        if (!result.Succeeded) throw new InvalidOperationException(string.Join("; ", result.Errors.Select(e => e.Description)));
+        if (!result.Succeeded)
+            throw new InvalidOperationException(string.Join("; ", result.Errors.Select(e => e.Description)));
     }
 }

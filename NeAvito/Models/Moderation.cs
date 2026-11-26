@@ -1,9 +1,32 @@
 namespace NeAvito.Models;
 
-public static class ModerationRoles { public const string Moderator = "Moderator"; }
-public enum ReportReason { InaccurateDescription, ProhibitedItem, SuspectedFraud, Other }
-public enum ReportStatus { Pending, Resolved }
-public enum ModerationAction { Reject, HideListing, BlockAuthor, RestoreListing, UnblockAuthor }
+public static class ModerationRoles
+{
+    public const string Moderator = "Moderator";
+}
+
+public enum ReportReason
+{
+    InaccurateDescription,
+    ProhibitedItem,
+    SuspectedFraud,
+    Other,
+}
+
+public enum ReportStatus
+{
+    Pending,
+    Resolved,
+}
+
+public enum ModerationAction
+{
+    Reject,
+    HideListing,
+    BlockAuthor,
+    RestoreListing,
+    UnblockAuthor,
+}
 
 public sealed class ListingReport
 {

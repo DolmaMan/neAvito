@@ -12,8 +12,10 @@ public class AccountEmailOptionsTests
     {
         var options = new AccountEmailOptions
         {
-            PublicOrigin = "https://localhost:7353", From = "sender@example.com",
-            Host = host, Port = 587
+            PublicOrigin = "https://localhost:7353",
+            From = "sender@example.com",
+            Host = host,
+            Port = 587,
         };
         Assert.False(options.IsValid(true));
         options.Host = "smtp.gmail.com";
@@ -25,8 +27,11 @@ public class AccountEmailOptionsTests
     {
         var options = new AccountEmailOptions
         {
-            PublicOrigin = "https://localhost:7353", From = "neavito@demo.test",
-            Host = "mailpit", Port = 1025, EnableSsl = false
+            PublicOrigin = "https://localhost:7353",
+            From = "neavito@demo.test",
+            Host = "mailpit",
+            Port = 1025,
+            EnableSsl = false,
         };
         Assert.True(options.IsValid(true));
         Assert.False(options.IsValid(false));

@@ -6,13 +6,19 @@ public sealed class Category
     public string Name { get; set; } = string.Empty;
 }
 
-public enum ProductStatus { Draft, Published, Unpublished }
+public enum ProductStatus
+{
+    Draft,
+    Published,
+    Unpublished,
+}
 
 public sealed class Product
 {
     public Guid Id { get; set; } = Guid.NewGuid();
     public string Name { get; set; } = string.Empty;
     public string Description { get; set; } = string.Empty;
+
     // Store rubles as integer kopecks to avoid rounding and floating point errors.
     public long PriceMinor { get; set; }
     public int Stock { get; set; }
@@ -34,4 +40,3 @@ public sealed class ProductImage
     public string Url { get; set; } = string.Empty;
     public int Position { get; set; }
 }
-

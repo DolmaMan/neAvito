@@ -15,22 +15,26 @@ namespace NeAvito.Migrations
                 table: "Listings",
                 type: "boolean",
                 nullable: false,
-                defaultValue: false);
+                defaultValue: false
+            );
 
             migrationBuilder.AddColumn<string>(
                 name: "TransitionNote",
                 table: "Listings",
                 type: "character varying(500)",
                 maxLength: 500,
-                nullable: true);
+                nullable: true
+            );
 
             migrationBuilder.AddColumn<bool>(
                 name: "IsBlocked",
                 table: "AspNetUsers",
                 type: "boolean",
                 nullable: false,
-                defaultValue: false);
-            migrationBuilder.Sql("""
+                defaultValue: false
+            );
+            migrationBuilder.Sql(
+                """
                 LOCK TABLE "Products", "ProductImages", "CartItems", "Orders", "OrderItems", "CheckoutBatches" IN ACCESS EXCLUSIVE MODE;
                 DO $$ BEGIN
                   IF EXISTS (SELECT 1 FROM "Orders" WHERE "Status" IN ('New','Confirmed')) THEN
@@ -58,13 +62,16 @@ namespace NeAvito.Migrations
                 CREATE TRIGGER legacy_readonly BEFORE INSERT OR UPDATE OR DELETE OR TRUNCATE ON "Orders" FOR EACH STATEMENT EXECUTE FUNCTION neavito_legacy_readonly();
                 CREATE TRIGGER legacy_readonly BEFORE INSERT OR UPDATE OR DELETE OR TRUNCATE ON "OrderItems" FOR EACH STATEMENT EXECUTE FUNCTION neavito_legacy_readonly();
                 CREATE TRIGGER legacy_readonly BEFORE INSERT OR UPDATE OR DELETE OR TRUNCATE ON "CheckoutBatches" FOR EACH STATEMENT EXECUTE FUNCTION neavito_legacy_readonly();
-                """);
+                """
+            );
         }
 
         /// <inheritdoc />
         protected override void Down(MigrationBuilder migrationBuilder)
         {
-            throw new NotSupportedException("Cutover cannot be reversed automatically. Keep legacy writes disabled; restore a verified backup to a separate database for recovery.");
+            throw new NotSupportedException(
+                "Cutover cannot be reversed automatically. Keep legacy writes disabled; restore a verified backup to a separate database for recovery."
+            );
         }
     }
 }

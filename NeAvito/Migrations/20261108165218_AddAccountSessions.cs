@@ -17,7 +17,7 @@ namespace NeAvito.Migrations
                 {
                     Id = table.Column<Guid>(type: "uuid", nullable: false),
                     UserId = table.Column<string>(type: "text", nullable: false),
-                    ExpiresAtUtc = table.Column<DateTime>(type: "timestamp with time zone", nullable: false)
+                    ExpiresAtUtc = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
                 },
                 constraints: table =>
                 {
@@ -27,25 +27,28 @@ namespace NeAvito.Migrations
                         column: x => x.UserId,
                         principalTable: "AspNetUsers",
                         principalColumn: "Id",
-                        onDelete: ReferentialAction.Cascade);
-                });
+                        onDelete: ReferentialAction.Cascade
+                    );
+                }
+            );
 
             migrationBuilder.CreateIndex(
                 name: "IX_AccountSessions_ExpiresAtUtc",
                 table: "AccountSessions",
-                column: "ExpiresAtUtc");
+                column: "ExpiresAtUtc"
+            );
 
             migrationBuilder.CreateIndex(
                 name: "IX_AccountSessions_UserId",
                 table: "AccountSessions",
-                column: "UserId");
+                column: "UserId"
+            );
         }
 
         /// <inheritdoc />
         protected override void Down(MigrationBuilder migrationBuilder)
         {
-            migrationBuilder.DropTable(
-                name: "AccountSessions");
+            migrationBuilder.DropTable(name: "AccountSessions");
         }
     }
 }

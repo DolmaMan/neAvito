@@ -1,7 +1,19 @@
 namespace NeAvito.Models;
 
-public enum ListingStatus { Draft, Published, Unpublished, Sold, Archived }
-public enum ItemCondition { New, Used }
+public enum ListingStatus
+{
+    Draft,
+    Published,
+    Unpublished,
+    Sold,
+    Archived,
+}
+
+public enum ItemCondition
+{
+    New,
+    Used,
+}
 
 public sealed class City
 {

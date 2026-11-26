@@ -25,16 +25,27 @@ public sealed class AuthController(UserManager<AppUser> users, SignInManager<App
         try
         {
             var result = await users.CreateAsync(user, request.Password);
-            if (!result.Succeeded) return IdentityErrors(result);
+            if (!result.Succeeded) 
+                return IdentityErrors(result);
         }
-        catch (DbUpdateException error) when (error.InnerException is PostgresException
-            { SqlState: PostgresErrorCodes.UniqueViolation, ConstraintName: "UserNameIndex" or "EmailIndex" })
+        catch (DbUpdateException error) 
+        when (error.InnerException is PostgresException  
+        { 
+            SqlState: PostgresErrorCodes.UniqueViolation,
+            ConstraintName: "UserNameIndex" or "EmailIndex"
+        })
         {
             return IdentityErrors(IdentityResult.Failed(users.ErrorDescriber.DuplicateEmail(email)));
         }
 
         var confirmationSent = await SendConfirmation(user, cancellation);
-        return StatusCode(StatusCodes.Status201Created, new { user.Id, user.Email, user.DisplayName, confirmationSent });
+        return StatusCode(StatusCodes.Status201Created, new 
+        { 
+            user.Id,
+            user.Email,
+            user.DisplayName,
+            confirmationSent
+        });
     }
 
     [HttpPost("login")]
@@ -42,10 +53,21 @@ public sealed class AuthController(UserManager<AppUser> users, SignInManager<App
     public async Task<IActionResult> Login(LoginRequest request)
     {
         if (await users.FindByEmailAsync(request.Email.Trim()) is { IsBlocked: true })
-            return Unauthorized(new { message = "Неверные учетные данные или вход временно заблокирован." });
-        var result = await signIn.PasswordSignInAsync(request.Email.Trim(), request.Password, false, true);
-        return result.Succeeded ? Ok(new { message = "Вход выполнен." })
-            : Unauthorized(new { message = "Неверные учетные данные или вход временно заблокирован." });
+            return Unauthorized(new 
+            { 
+                message = "Неверные учетные данные или вход временно заблокирован."
+            });
+
+        var result = await signIn.PasswordSignInAsync
+        (
+            request.Email.Trim(),
+            request.Password,
+            false,
+            true
+        );
+        return result.Succeeded ? 
+            Ok(new { message = "Вход выполнен." }) :
+            Unauthorized(new { message = "Неверные учетные данные или вход временно заблокирован." });
     }
 
     [HttpPost("resend-confirmation")]
@@ -53,7 +75,9 @@ public sealed class AuthController(UserManager<AppUser> users, SignInManager<App
     public async Task<IActionResult> ResendConfirmation(EmailRequest request, CancellationToken cancellation)
     {
         var user = await users.FindByEmailAsync(request.Email.Trim());
-        if (user is { EmailConfirmed: false }) await SendConfirmation(user, cancellation);
+        if (user is { EmailConfirmed: false })
+            await SendConfirmation(user, cancellation);
+
         return Accepted(new { message = "Если этот адрес ожидает подтверждения, на него будет отправлена ссылка." });
     }
 
@@ -62,7 +86,9 @@ public sealed class AuthController(UserManager<AppUser> users, SignInManager<App
     public async Task<IActionResult> ConfirmEmail(AccountTokenRequest request)
     {
         var user = await users.FindByIdAsync(request.UserId);
-        if (user is null) return InvalidLink();
+        if (user is null) 
+            return InvalidLink();
+
         var result = await users.ConfirmEmailAsync(user, request.Token);
         return result.Succeeded ? NoContent() : InvalidLink();
     }
@@ -75,7 +101,14 @@ public sealed class AuthController(UserManager<AppUser> users, SignInManager<App
         if (user is { EmailConfirmed: true, Email: not null })
         {
             var token = await users.GeneratePasswordResetTokenAsync(user);
-            await emailSender.SendLinkAsync(user.Email, "reset-password", user.Id, token, cancellation);
+            await emailSender.SendLinkAsync
+            (
+                user.Email,
+                "reset-password",
+                user.Id,
+                token,
+                cancellation
+            );
         }
         return Accepted(new { message = "Если для этого адреса доступно восстановление, на него будет отправлена ссылка." });
     }
@@ -85,13 +118,21 @@ public sealed class AuthController(UserManager<AppUser> users, SignInManager<App
     public async Task<IActionResult> ResetPassword(ResetPasswordRequest request)
     {
         var user = await users.FindByIdAsync(request.UserId);
-        if (user is not { EmailConfirmed: true }) return InvalidLink();
+
+        if (user is not { EmailConfirmed: true })
+            return InvalidLink();
+
         // Identity saves these changes together with the verified password reset and its new security stamp.
         user.AccessFailedCount = 0;
         user.LockoutEnd = null;
+
         var result = await users.ResetPasswordAsync(user, request.Token, request.Password);
-        if (result.Succeeded) return NoContent();
-        if (result.Errors.Any(error => error.Code == nameof(IdentityErrorDescriber.InvalidToken))) return InvalidLink();
+        if (result.Succeeded) 
+            return NoContent();
+
+        if (result.Errors.Any(error => error.Code == nameof(IdentityErrorDescriber.InvalidToken)))
+            return InvalidLink();
+
         return IdentityErrors(result);
     }
 
@@ -101,12 +142,17 @@ public sealed class AuthController(UserManager<AppUser> users, SignInManager<App
     public async Task<IActionResult> ChangePassword(ChangePasswordRequest request)
     {
         var user = await users.GetUserAsync(User);
-        if (user is null) return Unauthorized();
+        if (user is null) 
+            return Unauthorized();
+
         if (request.CurrentPassword == request.NewPassword)
             return BadRequest(new { message = "Новый пароль должен отличаться от текущего." });
+
         // Identity verifies the current password and changes the security stamp atomically.
         var result = await users.ChangePasswordAsync(user, request.CurrentPassword, request.NewPassword);
-        if (!result.Succeeded) return IdentityErrors(result);
+        if (!result.Succeeded) 
+            return IdentityErrors(result);
+
         await signIn.SignOutAsync();
         return NoContent();
     }
@@ -117,9 +163,13 @@ public sealed class AuthController(UserManager<AppUser> users, SignInManager<App
     public async Task<IActionResult> LogoutAll()
     {
         var user = await users.GetUserAsync(User);
-        if (user is null) return Unauthorized();
+        if (user is null) 
+            return Unauthorized();
+
         var result = await users.UpdateSecurityStampAsync(user);
-        if (!result.Succeeded) return IdentityErrors(result);
+        if (!result.Succeeded)
+            return IdentityErrors(result);
+
         await signIn.SignOutAsync();
         return NoContent();
     }
@@ -137,20 +187,46 @@ public sealed class AuthController(UserManager<AppUser> users, SignInManager<App
     public async Task<IActionResult> Me()
     {
         var user = await users.GetUserAsync(User);
-        return user is null ? Unauthorized() : Ok(new { user.Id, user.Email, user.DisplayName, CanModerate = User.IsInRole(ModerationRoles.Moderator) });
+        return user is null ? 
+            Unauthorized() :
+            Ok(new 
+            { 
+                user.Id,
+                user.Email,
+                user.DisplayName,
+                CanModerate = User.IsInRole(ModerationRoles.Moderator) 
+            });
     }
 
     private async Task<bool> SendConfirmation(AppUser user, CancellationToken cancellation)
     {
         var token = await users.GenerateEmailConfirmationTokenAsync(user);
-        return await emailSender.SendLinkAsync(user.Email!, "confirm-email", user.Id, token, cancellation);
+        return await emailSender.SendLinkAsync
+        (
+            user.Email!,
+            "confirm-email",
+            user.Id,
+            token,
+            cancellation
+        );
     }
 
     private BadRequestObjectResult IdentityErrors(IdentityResult result) =>
-        BadRequest(new { errors = result.Errors.Select(error => new { error.Code, error.Description }) });
+        BadRequest(new 
+        { 
+            errors = result.Errors.Select(
+                error => new 
+                { 
+                    error.Code,
+                    error.Description
+                }) 
+        });
 
     private BadRequestObjectResult InvalidLink() =>
-        BadRequest(new { message = "Ссылка недействительна или устарела. Запросите новую." });
+        BadRequest(new 
+        { 
+            message = "Ссылка недействительна или устарела. Запросите новую." 
+        });
 }
 
 public sealed record RegisterRequest(

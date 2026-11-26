@@ -1,43 +1,119 @@
 <!doctype html>
 <html lang="ru">
-<head>
-  <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Каталог — NeAvito</title>
-  <link rel="stylesheet" href="/app.css?v=p3-queue-2"><script src="/password-toggle.js?v=p3-1" defer></script><script src="/app.js?v=p3-1" defer></script><script src="/account-security.js?v=p3-1" defer></script><script src="/listings.js?v=p3-1" defer></script><script src="/catalog.js?v=p3-1" defer></script>
-</head>
-<body>
-  <a class="skip-link" href="#main-content">К содержимому</a>
-  <div class="announcement">ВЕЩИ С ПРОДОЛЖЕНИЕМ · NEAVITO</div>
-  <header class="topbar"><a class="brand" href="#catalog"><span class="brand-mark">N</span>NeAvito<span class="brand-note">вещи с продолжением</span></a><div class="store-nav"><a href="#catalog">Каталог</a><a id="guest-login" href="#login">Войти</a><span id="cart-count" class="small muted" hidden></span></div><div id="userbar" hidden><a href="#profile">Кабинет</a><span id="user-name"></span><button id="logout" class="quiet">Выйти</button></div><a class="sell-link" href="#listing">Разместить объявление ↗</a></header>
-  <div id="notice" role="status" aria-live="polite" hidden></div>
-  <main id="storefront" class="storefront" tabindex="-1" hidden></main>
-  <main id="auth-screen" class="auth-layout" hidden>
-    <section class="welcome"><span class="eyebrow">ВАШЕ МЕСТО НА NEAVITO</span><h1>Хорошим вещам.<br>Новую историю.</h1><p>Ваши объявления и данные профиля — в одном личном кабинете.</p><div class="welcome-note"><span>01 /</span> Один аккаунт для покупок и продаж</div></section>
-    <section class="auth-card">
-      <div class="switch" aria-label="Вход или регистрация">
-        <button class="selected" data-auth-mode="login" type="button">Вход</button>
-        <button data-auth-mode="register" type="button">Регистрация</button>
-      </div>
-      <h2 id="auth-title">Вход</h2>
-      <p id="auth-hint" class="muted">Войдите, чтобы открыть личный кабинет.</p>
-      <form id="auth-form">
-        <label id="register-name" hidden>Ваше имя<input name="displayName" autocomplete="name" maxlength="100" disabled></label>
-        <label id="auth-email">Электронная почта<input name="email" type="email" autocomplete="username" maxlength="256" required></label>
-        <label id="auth-password">Пароль<input name="password" type="password" autocomplete="current-password" maxlength="128" required></label>
-        <p id="password-hint" class="muted small" hidden>Не менее 8 символов, включая строчную и прописную буквы, цифру и специальный символ.</p>
-        <p id="auth-error" class="error" role="alert"></p>
-        <p id="auth-status" role="status"></p>
-        <button class="primary wide" id="auth-submit">Войти</button>
-      </form>
-      <div class="form-actions">
-        <button class="quiet" type="button" data-auth-mode="forgot-password">Забыли пароль?</button>
-        <button class="quiet" type="button" data-auth-mode="resend-confirmation">Отправить письмо подтверждения</button>
-      </div>
-    </section>
-  </main>
-  <div id="cabinet" class="cabinet" hidden><aside><div class="sidebar-title">Личный кабинет</div><nav aria-label="Разделы кабинета"><a href="#profile">Мой профиль</a><a href="#listings">Мои объявления</a><a href="#moderation" hidden>Модерация</a><div class="nav-label">АРХИВ ЗАКАЗОВ</div><a href="#purchases">История покупок</a><a href="#sales">История продаж</a></nav><div class="sidebar-footer">Один аккаунт.<br>Две возможности.</div></aside><main id="content" tabindex="-1"></main></div>
-  <dialog id="detail-dialog"><div class="dialog-top"><h2 id="dialog-title">Заказ</h2><button id="close-dialog" class="quiet" aria-label="Закрыть окно">Закрыть</button></div><div id="dialog-content"></div></dialog>
-  <footer class="site-footer"><div><strong>NeAvito</strong><p>Место для вещей, которые заслуживают продолжения.</p></div><div><a href="#catalog">Найти вещь</a> · <a href="#listing">Разместить объявление</a><p>Связывайтесь с автором и договаривайтесь о передаче напрямую.</p></div></footer>
-  <script src="/interface.js?v=p3-queue-2" defer></script>
-  <noscript>Для работы личного кабинета включите JavaScript.</noscript>
-</body></html>
+    <head>
+        <meta charset="utf-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1" />
+        <title>Каталог — NeAvito</title>
+        <link rel="stylesheet" href="/app.css?v=p3-queue-2" />
+        <script src="/password-toggle.js?v=p3-1" defer></script>
+        <script src="/app.js?v=p3-1" defer></script>
+        <script src="/account-security.js?v=p3-1" defer></script>
+        <script src="/listings.js?v=p3-1" defer></script>
+        <script src="/catalog.js?v=p3-1" defer></script>
+    </head>
+    <body>
+        <a class="skip-link" href="#main-content">К содержимому</a>
+        <div class="announcement">ВЕЩИ С ПРОДОЛЖЕНИЕМ · NEAVITO</div>
+        <header class="topbar">
+            <a class="brand" href="#catalog"
+                ><span class="brand-mark">N</span>NeAvito<span class="brand-note"
+                    >вещи с продолжением</span
+                ></a
+            >
+            <div class="store-nav">
+                <a href="#catalog">Каталог</a><a id="guest-login" href="#login">Войти</a
+                ><span id="cart-count" class="small muted" hidden></span>
+            </div>
+            <div id="userbar" hidden>
+                <a href="#profile">Кабинет</a><span id="user-name"></span
+                ><button id="logout" class="quiet">Выйти</button>
+            </div>
+            <a class="sell-link" href="#listing">Разместить объявление ↗</a>
+        </header>
+        <div id="notice" role="status" aria-live="polite" hidden></div>
+        <main id="storefront" class="storefront" tabindex="-1" hidden></main>
+        <main id="auth-screen" class="auth-layout" hidden>
+            <section class="welcome">
+                <span class="eyebrow">ВАШЕ МЕСТО НА NEAVITO</span>
+                <h1>Хорошим вещам.<br />Новую историю.</h1>
+                <p>Ваши объявления и данные профиля — в одном личном кабинете.</p>
+                <div class="welcome-note"><span>01 /</span> Один аккаунт для покупок и продаж</div>
+            </section>
+            <section class="auth-card">
+                <div class="switch" aria-label="Вход или регистрация">
+                    <button class="selected" data-auth-mode="login" type="button">Вход</button>
+                    <button data-auth-mode="register" type="button">Регистрация</button>
+                </div>
+                <h2 id="auth-title">Вход</h2>
+                <p id="auth-hint" class="muted">Войдите, чтобы открыть личный кабинет.</p>
+                <form id="auth-form">
+                    <label id="register-name" hidden
+                        >Ваше имя<input name="displayName" autocomplete="name" maxlength="100" disabled
+                    /></label>
+                    <label id="auth-email"
+                        >Электронная почта<input
+                            name="email"
+                            type="email"
+                            autocomplete="username"
+                            maxlength="256"
+                            required
+                    /></label>
+                    <label id="auth-password"
+                        >Пароль<input
+                            name="password"
+                            type="password"
+                            autocomplete="current-password"
+                            maxlength="128"
+                            required
+                    /></label>
+                    <p id="password-hint" class="muted small" hidden>
+                        Не менее 8 символов, включая строчную и прописную буквы, цифру и специальный символ.
+                    </p>
+                    <p id="auth-error" class="error" role="alert"></p>
+                    <p id="auth-status" role="status"></p>
+                    <button class="primary wide" id="auth-submit">Войти</button>
+                </form>
+                <div class="form-actions">
+                    <button class="quiet" type="button" data-auth-mode="forgot-password">
+                        Забыли пароль?
+                    </button>
+                    <button class="quiet" type="button" data-auth-mode="resend-confirmation">
+                        Отправить письмо подтверждения
+                    </button>
+                </div>
+            </section>
+        </main>
+        <div id="cabinet" class="cabinet" hidden>
+            <aside>
+                <div class="sidebar-title">Личный кабинет</div>
+                <nav aria-label="Разделы кабинета">
+                    <a href="#profile">Мой профиль</a><a href="#listings">Мои объявления</a
+                    ><a href="#moderation" hidden>Модерация</a>
+                    <div class="nav-label">АРХИВ ЗАКАЗОВ</div>
+                    <a href="#purchases">История покупок</a><a href="#sales">История продаж</a>
+                </nav>
+                <div class="sidebar-footer">Один аккаунт.<br />Две возможности.</div>
+            </aside>
+            <main id="content" tabindex="-1"></main>
+        </div>
+        <dialog id="detail-dialog">
+            <div class="dialog-top">
+                <h2 id="dialog-title">Заказ</h2>
+                <button id="close-dialog" class="quiet" aria-label="Закрыть окно">Закрыть</button>
+            </div>
+            <div id="dialog-content"></div>
+        </dialog>
+        <footer class="site-footer">
+            <div>
+                <strong>NeAvito</strong>
+                <p>Место для вещей, которые заслуживают продолжения.</p>
+            </div>
+            <div>
+                <a href="#catalog">Найти вещь</a> · <a href="#listing">Разместить объявление</a>
+                <p>Связывайтесь с автором и договаривайтесь о передаче напрямую.</p>
+            </div>
+        </footer>
+        <script src="/interface.js?v=p3-queue-2" defer></script>
+        <noscript>Для работы личного кабинета включите JavaScript.</noscript>
+    </body>
+</html>
