@@ -8,6 +8,8 @@ using NeAvito.Services;
 using System.Threading.RateLimiting;
 
 var builder = WebApplication.CreateBuilder(args);
+if (Environment.GetEnvironmentVariable("DEMO_SETTINGS_PATH") is { Length: > 0 } demoSettingsPath)
+    builder.Configuration.AddJsonFile(demoSettingsPath, optional: false, reloadOnChange: false);
 if (builder.Configuration["DataProtection:KeysPath"] is { Length: > 0 } keysPath)
 {
     builder.Services.AddDataProtection().SetApplicationName("NeAvito")
@@ -73,6 +75,11 @@ builder.Services.ConfigureApplicationCookie(options =>
     options.EventsType = typeof(AccountCookieEvents);
 });
 var app = builder.Build();
+if (args.Length == 1 && args[0] == "--setup-demo")
+{
+    await DemoSetup.RunAsync(app.Services, app.Environment, app.Configuration);
+    return;
+}
 if (args.Length > 0 && args[0] is "--grant-moderator" or "--revoke-moderator")
 {
     if (args.Length != 2) throw new InvalidOperationException("Укажите email существующего подтверждённого аккаунта.");

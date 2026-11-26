@@ -226,3 +226,12 @@ fieldset + p { margin-top: 20px; }
 @media (prefers-reduced-motion:reduce) { *, *::before, *::after { transition: none !important; scroll-behavior: auto !important; } }
 
 .moderation-text{white-space:pre-wrap;overflow-wrap:anywhere}.moderation-image{width:120px;height:120px;object-fit:cover}#moderation-detail,.moderation-reports,.order-card small{overflow-wrap:anywhere}
+
+/* Keep queue rows on one left edge with consistent vertical spacing. */
+.moderation-queue { display: grid; gap: 24px; }
+.moderation-queue > h2, .moderation-queue > p, .moderation-reports > p { margin: 0; }
+.moderation-filters { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; width: 100%; max-width: 660px; }
+.moderation-filters .page-link { display: flex; align-items: center; justify-content: center; text-align: center; min-height: 44px; }
+.moderation-filters .page-link[aria-current="page"] { border-color: currentColor; background: var(--surface); }
+.moderation-queue > .pager { justify-content: flex-start; flex-wrap: wrap; margin-top: 0; }
+@media (max-width: 600px) { .moderation-filters { grid-template-columns: 1fr; } }

@@ -10,6 +10,7 @@ public sealed class AccountEmailOptions
     public string From { get; set; } = "";
     public string Host { get; set; } = "";
     public int Port { get; set; } = 587;
+    public bool EnableSsl { get; set; } = true;
     public string? UserName { get; set; }
     public string? Password { get; set; }
     public string? PickupDirectory { get; set; }
@@ -19,8 +20,10 @@ public sealed class AccountEmailOptions
         && uri.Scheme == Uri.UriSchemeHttps && uri.AbsolutePath == "/"
         && uri.UserInfo.Length == 0 && uri.Query.Length == 0 && uri.Fragment.Length == 0
         && MailAddress.TryCreate(From, out _)
+        && (EnableSsl || development)
         && (string.IsNullOrWhiteSpace(PickupDirectory)
-            ? !string.IsNullOrWhiteSpace(Host) && Port is > 0 and <= 65535
+            ? !string.IsNullOrWhiteSpace(Host) && Uri.CheckHostName(Host) != UriHostNameType.Unknown
+                && Port is > 0 and <= 65535
                 && string.IsNullOrWhiteSpace(UserName) == string.IsNullOrWhiteSpace(Password)
             : development);
 }
@@ -55,7 +58,7 @@ internal sealed class AccountEmail(
             {
                 smtp.Host = config.Host;
                 smtp.Port = config.Port;
-                smtp.EnableSsl = true;
+                smtp.EnableSsl = config.EnableSsl;
                 if (!string.IsNullOrWhiteSpace(config.UserName))
                     smtp.Credentials = new NetworkCredential(config.UserName, config.Password);
             }
