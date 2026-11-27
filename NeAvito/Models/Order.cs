@@ -1,6 +1,12 @@
 namespace NeAvito.Models;
 
-public enum OrderStatus { New, Confirmed, Completed, Cancelled }
+public enum OrderStatus
+{
+    New,
+    Confirmed,
+    Completed,
+    Cancelled,
+}
 
 public sealed class CheckoutBatch
 {

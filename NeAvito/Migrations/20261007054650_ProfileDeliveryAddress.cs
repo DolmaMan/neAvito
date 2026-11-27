@@ -16,15 +16,14 @@ namespace NeAvito.Migrations
                 type: "character varying(500)",
                 maxLength: 500,
                 nullable: false,
-                defaultValue: "");
+                defaultValue: ""
+            );
         }
 
         /// <inheritdoc />
         protected override void Down(MigrationBuilder migrationBuilder)
         {
-            migrationBuilder.DropColumn(
-                name: "DeliveryAddress",
-                table: "AspNetUsers");
+            migrationBuilder.DropColumn(name: "DeliveryAddress", table: "AspNetUsers");
         }
     }
 }

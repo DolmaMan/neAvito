@@ -18,47 +18,74 @@ namespace NeAvito.Migrations
                 name: "Categories",
                 columns: table => new
                 {
-                    Id = table.Column<int>(type: "integer", nullable: false)
-                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
-                    Name = table.Column<string>(type: "character varying(100)", maxLength: 100, nullable: false)
+                    Id = table
+                        .Column<int>(type: "integer", nullable: false)
+                        .Annotation(
+                            "Npgsql:ValueGenerationStrategy",
+                            NpgsqlValueGenerationStrategy.IdentityByDefaultColumn
+                        ),
+                    Name = table.Column<string>(
+                        type: "character varying(100)",
+                        maxLength: 100,
+                        nullable: false
+                    ),
                 },
                 constraints: table =>
                 {
                     table.PrimaryKey("PK_Categories", x => x.Id);
-                });
+                }
+            );
 
             migrationBuilder.CreateTable(
                 name: "Products",
                 columns: table => new
                 {
                     Id = table.Column<Guid>(type: "uuid", nullable: false),
-                    Name = table.Column<string>(type: "character varying(200)", maxLength: 200, nullable: false),
-                    Description = table.Column<string>(type: "character varying(10000)", maxLength: 10000, nullable: false),
+                    Name = table.Column<string>(
+                        type: "character varying(200)",
+                        maxLength: 200,
+                        nullable: false
+                    ),
+                    Description = table.Column<string>(
+                        type: "character varying(10000)",
+                        maxLength: 10000,
+                        nullable: false
+                    ),
                     PriceMinor = table.Column<long>(type: "bigint", nullable: false),
                     Stock = table.Column<int>(type: "integer", nullable: false),
                     CategoryId = table.Column<int>(type: "integer", nullable: false),
                     SellerId = table.Column<string>(type: "text", nullable: false),
-                    Status = table.Column<string>(type: "character varying(20)", maxLength: 20, nullable: false),
-                    CreatedAtUtc = table.Column<DateTime>(type: "timestamp with time zone", nullable: false)
+                    Status = table.Column<string>(
+                        type: "character varying(20)",
+                        maxLength: 20,
+                        nullable: false
+                    ),
+                    CreatedAtUtc = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
                 },
                 constraints: table =>
                 {
                     table.PrimaryKey("PK_Products", x => x.Id);
-                    table.CheckConstraint("CK_Products_Price", "\"PriceMinor\" > 0 AND \"PriceMinor\" <= 100000000000");
+                    table.CheckConstraint(
+                        "CK_Products_Price",
+                        "\"PriceMinor\" > 0 AND \"PriceMinor\" <= 100000000000"
+                    );
                     table.CheckConstraint("CK_Products_Stock", "\"Stock\" >= 0");
                     table.ForeignKey(
                         name: "FK_Products_AspNetUsers_SellerId",
                         column: x => x.SellerId,
                         principalTable: "AspNetUsers",
                         principalColumn: "Id",
-                        onDelete: ReferentialAction.Restrict);
+                        onDelete: ReferentialAction.Restrict
+                    );
                     table.ForeignKey(
                         name: "FK_Products_Categories_CategoryId",
                         column: x => x.CategoryId,
                         principalTable: "Categories",
                         principalColumn: "Id",
-                        onDelete: ReferentialAction.Restrict);
-                });
+                        onDelete: ReferentialAction.Restrict
+                    );
+                }
+            );
 
             migrationBuilder.CreateTable(
                 name: "ProductImages",
@@ -66,8 +93,12 @@ namespace NeAvito.Migrations
                 {
                     Id = table.Column<Guid>(type: "uuid", nullable: false),
                     ProductId = table.Column<Guid>(type: "uuid", nullable: false),
-                    Url = table.Column<string>(type: "character varying(2048)", maxLength: 2048, nullable: false),
-                    Position = table.Column<int>(type: "integer", nullable: false)
+                    Url = table.Column<string>(
+                        type: "character varying(2048)",
+                        maxLength: 2048,
+                        nullable: false
+                    ),
+                    Position = table.Column<int>(type: "integer", nullable: false),
                 },
                 constraints: table =>
                 {
@@ -77,8 +108,10 @@ namespace NeAvito.Migrations
                         column: x => x.ProductId,
                         principalTable: "Products",
                         principalColumn: "Id",
-                        onDelete: ReferentialAction.Cascade);
-                });
+                        onDelete: ReferentialAction.Cascade
+                    );
+                }
+            );
 
             migrationBuilder.InsertData(
                 table: "Categories",
@@ -90,58 +123,59 @@ namespace NeAvito.Migrations
                     { 3, "Электроника" },
                     { 4, "Дом и быт" },
                     { 5, "Спорт и отдых" },
-                    { 6, "Другое" }
-                });
+                    { 6, "Другое" },
+                }
+            );
 
             migrationBuilder.CreateIndex(
                 name: "IX_Categories_Name",
                 table: "Categories",
                 column: "Name",
-                unique: true);
+                unique: true
+            );
 
             migrationBuilder.CreateIndex(
                 name: "IX_ProductImages_ProductId_Position",
                 table: "ProductImages",
                 columns: new[] { "ProductId", "Position" },
-                unique: true);
+                unique: true
+            );
 
             migrationBuilder.CreateIndex(
                 name: "IX_Products_CategoryId",
                 table: "Products",
-                column: "CategoryId");
+                column: "CategoryId"
+            );
 
-            migrationBuilder.CreateIndex(
-                name: "IX_Products_SellerId",
-                table: "Products",
-                column: "SellerId");
+            migrationBuilder.CreateIndex(name: "IX_Products_SellerId", table: "Products", column: "SellerId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_Products_Status_CategoryId_PriceMinor",
                 table: "Products",
-                columns: new[] { "Status", "CategoryId", "PriceMinor" });
+                columns: new[] { "Status", "CategoryId", "PriceMinor" }
+            );
 
             migrationBuilder.CreateIndex(
                 name: "IX_Products_Status_CreatedAtUtc_Id",
                 table: "Products",
-                columns: new[] { "Status", "CreatedAtUtc", "Id" });
+                columns: new[] { "Status", "CreatedAtUtc", "Id" }
+            );
 
             migrationBuilder.CreateIndex(
                 name: "IX_Products_Status_PriceMinor_Id",
                 table: "Products",
-                columns: new[] { "Status", "PriceMinor", "Id" });
+                columns: new[] { "Status", "PriceMinor", "Id" }
+            );
         }
 
         /// <inheritdoc />
         protected override void Down(MigrationBuilder migrationBuilder)
         {
-            migrationBuilder.DropTable(
-                name: "ProductImages");
+            migrationBuilder.DropTable(name: "ProductImages");
 
-            migrationBuilder.DropTable(
-                name: "Products");
+            migrationBuilder.DropTable(name: "Products");
 
-            migrationBuilder.DropTable(
-                name: "Categories");
+            migrationBuilder.DropTable(name: "Categories");
         }
     }
 }

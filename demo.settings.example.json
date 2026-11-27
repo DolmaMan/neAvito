@@ -1,0 +1,17 @@
+{
+    "AccountEmail": {
+        "PublicOrigin": "https://localhost:7353",
+        "From": "",
+        "Host": "",
+        "Port": 587,
+        "UserName": "",
+        "Password": "",
+        "EnableSsl": true,
+        "PickupDirectory": ""
+    },
+    "Demo": {
+        "ModeratorEmail": "",
+        "ModeratorPassword": "",
+        "ModeratorDisplayName": "Модератор"
+    }
+}

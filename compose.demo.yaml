@@ -1,0 +1,42 @@
+name: neavito-demo
+services:
+    postgres:
+        image: postgres:17
+        environment:
+            POSTGRES_DB: neavito_demo
+            POSTGRES_USER: neavito_demo
+            POSTGRES_PASSWORD: ${DEMO_DB_PASSWORD:?Run Start-Demo.ps1}
+        ports:
+            - "127.0.0.1:25432:5432"
+        volumes:
+            - database:/var/lib/postgresql/data
+        healthcheck:
+            test: ["CMD-SHELL", "pg_isready -U neavito_demo -d neavito_demo"]
+            interval: 2s
+            timeout: 5s
+            retries: 30
+    app:
+        build: .
+        environment:
+            ASPNETCORE_ENVIRONMENT: Development
+            ASPNETCORE_URLS: https://+:8443
+            ASPNETCORE_Kestrel__Certificates__Default__Path: /https/demo.pfx
+            ASPNETCORE_Kestrel__Certificates__Default__Password: ${DEMO_CERT_PASSWORD:?Run Start-Demo.ps1}
+            ConnectionStrings__Postgres: Host=postgres;Database=neavito_demo;Username=neavito_demo;Password=${DEMO_DB_PASSWORD}
+            Demo__Enabled: "true"
+            Demo__Password: ${DEMO_ACCOUNT_PASSWORD:?Run Start-Demo.ps1}
+            DEMO_SETTINGS_PATH: /config/demo.settings.json
+            DataProtection__KeysPath: /data/keys
+            Images__StoragePath: /data/images
+        ports:
+            - "127.0.0.1:7353:8443"
+        volumes:
+            - ./NeAvito/App_Data/demo/https:/https:ro
+            - ./NeAvito/App_Data/demo/demo.settings.json:/config/demo.settings.json:ro
+            - appdata:/data
+        depends_on:
+            postgres:
+                condition: service_healthy
+volumes:
+    database:
+    appdata:
